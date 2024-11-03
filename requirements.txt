@@ -1,0 +1,4 @@
+discord~=2.3.2
+discord.py~=2.3.2
+aiocron~=1.8
+python-dotenv~=1.0.1
