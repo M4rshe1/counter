@@ -197,6 +197,10 @@ async def show_leaderboard(ctx, bot):
 
 async def set_reset_mode(ctx):
     mode = ctx.message.content.split(' ')[2].lower()
+    if mode == 'true':
+        mode = True
+    elif mode == 'false':
+        mode = False
     current_count, _, current_mode = get_channel_info(ctx.channel.id)
     if current_count is not None:
         update_reset_setting(ctx.channel.id, mode)

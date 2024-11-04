@@ -1,4 +1,5 @@
 import os
+import sqlite3
 
 import discord
 from discord.ext import commands
@@ -6,7 +7,7 @@ from dotenv import load_dotenv
 
 from advertise import advertise_commands, setup_crontabs
 from counting import counting_commands, counting_chat_evaluation, show_leaderboard
-from utils import setup_database
+from utils import setup_database, manage_users
 
 intents = discord.Intents.all()
 
@@ -22,27 +23,27 @@ class MyBot(commands.Bot):
         setup_crontabs(self)
         print('Setup complete!')
 
-
 bot = MyBot()
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
-@bot.hybrid_command()
-async def hello(ctx):
-    await ctx.send("Hello!")
 
-@bot.hybrid_command()
-async def sync(ctx):
-    await ctx.message.delete()
-    message = await ctx.send("Syncing...")
-    await bot.tree.sync(guild=ctx.guild)
-    await message.edit(content="Synced!", delete_after=5)
 
 # Permission check
-def has_manage_channels():
+def is_allowed():
     async def predicate(ctx):
-        return ctx.author.guild_permissions.manage_channels
+        conn = sqlite3.connect('quantic.db')
+        c = conn.cursor()
+        c.execute('SELECT user_id FROM allowed_users WHERE user_id = ? AND server_id = ?', (ctx.author.id, ctx.guild.id))
+        result = c.fetchone()
+        conn.close()
+        if result:
+            return True
+        else:
+            return ctx.author.guild_permissions.manage_channels
+
+
 
     return commands.check(predicate)
 
@@ -52,6 +53,19 @@ def channel_is_in_guild(channel_id):
 
     return commands.check(predicate)
 
+
+@bot.hybrid_command(name='quantic')
+@is_allowed()
+async def quantic(ctx):
+    await manage_users(ctx)
+
+@bot.hybrid_command()
+@is_allowed()
+async def sync(ctx):
+    await ctx.message.delete()
+    message = await ctx.send("Syncing...")
+    await bot.tree.sync(guild=ctx.guild)
+    await message.edit(content="Synced!", delete_after=5)
 
 @bot.hybrid_command(name='h')
 async def help_command(ctx):
@@ -79,17 +93,28 @@ async def help_command(ctx):
         inline=False
     )
 
+    admin_commands = """
+    `/quantic add @user` - Add user to allowed users
+    `/quantic remove @user` - Remove user from allowed users
+    `/quantic list` - List allowed users
+    """
+    embed.add_field(
+        name="👑 Admin Commands (Requires Manage Channels)",
+        value=admin_commands,
+        inline=False
+    )
+
     await ctx.send(embed=embed)
 
 
 @bot.hybrid_command(name='counting')
-@has_manage_channels()
+@is_allowed()
 async def counting(ctx):
     return await counting_commands(ctx, bot)
 
 
 @bot.hybrid_command(name='advertise')
-@has_manage_channels()
+@is_allowed()
 async def advertise(ctx):
     return await advertise_commands(ctx, bot)
 

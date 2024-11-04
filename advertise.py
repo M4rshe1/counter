@@ -1,6 +1,10 @@
+import asyncio
 import sqlite3
+from datetime import datetime
+
 import aiocron
 import discord
+import croniter
 
 
 crontabs = {}
@@ -23,11 +27,12 @@ async def help_command(ctx):
     )
 
     admin_commands = """
-    `/advertise link- <channel_id> <alias>` - Set up current channel for advertisement
-    `/advertise unlink <channel_id>` - Unlink current channel from advertisement
+    `/advertise link #channel <alias>` - Set up current channel for advertisement
+    `/advertise unlink <alias>` - Unlink channel from advertisement
     `/advertise message <alias> <message>` - Set advertisement message
     `/advertise interval <alias> <pattern>` - Set advertisement crontab: [Pattern Generator](https://crontab.guru/)
     `/advertise settings` - Show current server advertisement settings
+    `/advertise send <alias>` - Send advertisement now
     `/advertise <alias>` - Show advertisement message for alias
     """
     embed.add_field(
@@ -48,24 +53,32 @@ async def run_advertisement(channel_id: int, bot):
     conn.close()
     if result:
         channel = bot.get_channel(channel_id)
-        message = await channel.send(result[0])
-        await message.publish()
+        try:
+            message = await channel.send(result[0])
+            await asyncio.sleep(5)
+            await message.publish()
+            print("Message published successfully.")
+        except discord.Forbidden:
+            print("Bot lacks permissions to publish the message.")
+        except discord.HTTPException as e:
+            print(f"An error occurred: {e}")
     else:
         print('No advertisement message found!')
 
 async def show_advertise_settings(ctx):
     conn = sqlite3.connect('quantic.db')
     c = conn.cursor()
-    c.execute('SELECT message, interval, alias FROM advetisement WHERE server_id = ?', (ctx.guild.id,))
+    c.execute('SELECT message, interval, alias, channel_id FROM advetisement WHERE server_id = ?', (ctx.guild.id,))
     results = c.fetchall()
+    channel_name = ctx.guild.get_channel(results[0][3]).name if results else None
     conn.close()
     if results:
-        embed = discord.Embed(title=f"Channel Settings", color=discord.Color.blue())
-        for message, interval, alias in results:
+        for message, interval, alias, channel_id in results:
+            embed = discord.Embed(title=f"Channel Settings: {channel_name}", color=discord.Color.blue())
             embed.add_field(name="Advertisement Message", value=("Set" if message else "Not set"), inline=True)
             embed.add_field(name="Advertisement Interval", value=f'`{interval}`', inline=True)
             embed.add_field(name="Alias", value=alias, inline=True)
-        await ctx.send(embed=embed)
+            await ctx.send(embed=embed)
     if len(results) == 0:
         await ctx.send('This server has no advertisement channels set up!')
 
@@ -78,28 +91,56 @@ async def set_advertise_interval(ctx, bot):
     result = c.execute('SELECT * FROM advetisement WHERE server_id = ? AND alias = ?', (ctx.guild.id, alias)).fetchone()
     if not result:
         await ctx.send('This alias is not set up for advertisement!')
+        conn.close()
+        return
+
+    try:
+        cron_job(f"{alias}_{ctx.guild.id}", ctx.message.channel.id, interval, bot)
+    except ValueError as e:
+        print(e)
+        conn.close()
+        await ctx.send('Invalid crontab pattern!')
         return
     c.execute('UPDATE advetisement SET interval = ? WHERE server_id = ? AND alias = ?', (interval, ctx.guild.id, alias))
-    cron_job(ctx.channel.id, interval, bot)
     conn.commit()
     conn.close()
-    await ctx.send('Advertisement interval has been set!')
+    print(crontabs)
+    cron = croniter.croniter(interval)
+    next_time = cron.get_next(datetime)
+    await ctx.send('Advertisement interval has been set!\nThe next advertisement will be at: ' + str(next_time))
 
-def cron_job(channel_id: int, expression: str, bot):
-    job = crontabs.get(channel_id)
+def cron_job(job_id: str, channel_id: int, expression: str, bot):
+    job = crontabs.get(job_id)
     if job:
         job.stop()
-    crontabs[channel_id] = aiocron.crontab(expression, func=run_advertisement, start=True, args=(channel_id, bot))
+    crontabs[job_id] = aiocron.crontab(expression, func=run_advertisement, start=True, args=(channel_id, bot))
 
-def delete_cron_job(channel_id: int):
-    job = crontabs.get(channel_id)
+def delete_cron_job(job_id: str):
+    job = crontabs.get(job_id)
     if job:
         job.stop()
-        del crontabs[channel_id]
+        del crontabs[job_id]
 
 async def link_advertise_channel(ctx):
-    channel_id = int(ctx.message.content.split(' ')[2])
-    alias = ctx.message.content.split(' ')[3]
+
+    try:
+        mentioned_channel = ctx.message.channel_mentions[0]
+        channel_id = mentioned_channel.id
+        alias = ctx.message.content.split(' ',3)[3].trim().replace(' ', '_').lower()
+    except ValueError:
+        await ctx.send('Invalid channel ID!')
+        return
+    except IndexError:
+        await ctx.send('Please provide an alias!')
+        return
+
+    if not ctx.guild.get_channel(channel_id):
+        await ctx.send('Invalid channel ID!')
+        return
+
+    if not ctx.guild.get_channel(channel_id).is_news():
+        await ctx.send('This channel is not an announcement channel!')
+        return
 
     conn = sqlite3.connect('quantic.db')
     c = conn.cursor()
@@ -109,30 +150,30 @@ async def link_advertise_channel(ctx):
         await ctx.send('This alias is already in use for this server!')
         return
 
-    c.execute('INSERT OR REPLACE INTO advertisement (channel_id, server_id, alias) VALUES (?, ?, ?)',
+    c.execute('INSERT INTO advetisement (channel_id, server_id, alias) VALUES (?, ?, ?)',
               (channel_id, ctx.guild.id, alias))
     conn.commit()
     conn.close()
     embed = discord.Embed(title="Setup Complete", color=discord.Color.green())
     embed.add_field(name="Channel ID", value=channel_id, inline=True)
+    embed.add_field(name="Channel Name", value=ctx.guild.get_channel(channel_id).name, inline=True)
     embed.add_field(name="Alias", value=alias, inline=True)
     embed.add_field(name="Set Message command", value="/advertise message <alias> <message>", inline=False)
     embed.add_field(name="Set Interval command", value="/advertise interval <alias> <pattern>", inline=False)
-    embed.add_field(name="Unlink command", value="/advertise unlink <channel_id>", inline=False)
+    embed.add_field(name="Unlink command", value="/advertise unlink <alias>", inline=False)
     embed.add_field(name="Show Settings command", value="/advertise settings", inline=False)
-    embed.add_field(name="Help command", value="/advertise-help", inline=False)
+    embed.add_field(name="Help command", value="/advertise help", inline=False)
     await ctx.send(embed=embed)
 
 async def unlink_advertise_channel(ctx):
-    channel_id = ctx.message.content.split(' ')[2]
-    channel_id = int(channel_id)  # Ensure channel_id is an integer
+    alias = ctx.message.content.split(' ', 2)[2]
     conn = sqlite3.connect('quantic.db')
     c = conn.cursor()
-    c.execute('DELETE FROM advetisement WHERE channel_id = ?', (channel_id,))
+    c.execute('DELETE FROM advetisement WHERE server_id = ? AND alias = ?', (ctx.guild.id, alias))
     conn.commit()
     conn.close()
 
-    delete_cron_job(channel_id)
+    delete_cron_job(f"{alias}_{ctx.guild.id}")
 
     await ctx.send('This channel has been unlinked from advertisement!')
 
@@ -140,7 +181,6 @@ async def unlink_advertise_channel(ctx):
 async def set_advertise_message(ctx):
     alias = ctx.message.content.split(' ')[2]
     message = ctx.message.content.split(' ', 3)[3]
-    print(alias, message)
     conn = sqlite3.connect('quantic.db')
     c = conn.cursor()
     c.execute('UPDATE advetisement SET message = ? WHERE server_id = ? AND alias = ?', (message, ctx.guild.id, alias))
@@ -158,11 +198,24 @@ async def advertise(ctx):
         await ctx.send('Please provide an alias!')
         return
 
-    c.execute('SELECT message, interval FROM advetisement WHERE server_id = ? AND alias = ?', (ctx.guild.id, alias))
+    c.execute('SELECT message FROM advetisement WHERE server_id = ? AND alias = ?', (ctx.guild.id, alias))
     result = c.fetchone()
     conn.close()
     if result:
         await ctx.send(result[0] if result[0] else 'No message set for this alias!')
+    else:
+        await ctx.send('This alias is not set up for advertisement!')
+
+
+async def advertise_now(ctx, bot):
+    conn = sqlite3.connect('quantic.db')
+    c = conn.cursor()
+    alias = ctx.message.content.split(' ')[2]
+    c.execute('SELECT channel_id FROM advetisement WHERE server_id = ? AND alias = ?', (ctx.guild.id, alias))
+    result = c.fetchone()
+    conn.close()
+    if result:
+        await run_advertisement(result[0], bot)
     else:
         await ctx.send('This alias is not set up for advertisement!')
 
@@ -185,6 +238,8 @@ async def advertise_commands(ctx, bot):
         await set_advertise_interval(ctx, bot)
     elif command == 'settings':
         await show_advertise_settings(ctx)
+    elif command == 'send':
+        await advertise_now(ctx, bot)
     else:
         await advertise(ctx)
 
