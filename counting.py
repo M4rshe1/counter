@@ -46,11 +46,11 @@ async def help_command(ctx):
     )
 
     admin_commands = """
-    `Q!counting link` - Set up current channel for counting
-    `Q!counting reset` - Reset count to zero
-    `Q!counting set <number>` - Set count to specific number
-    `Q!counting mode <True/False>` - Toggle count reset on wrong numbers
-    `Q!counting settings` - Show current channel settings
+    `/counting link` - Set up current channel for counting
+    `/counting reset` - Reset count to zero
+    `/counting set <number>` - Set count to specific number
+    `/counting mode <True/False>` - Toggle count reset on wrong numbers
+    `/counting settings` - Show current channel settings
     """
     embed.add_field(
         name="👑 Admin Commands (Requires Manage Channels)",
@@ -59,8 +59,8 @@ async def help_command(ctx):
     )
 
     user_commands = """
-    `Q!counting leaderboard` or `Q!counting lb` - Show top counters
-    `Q!counting lb <number>` - Show specific number of top counters (max 25)
+    `/counting leaderboard` or `/counting lb` or /lb - Show top counters
+    `/lb <number>` - Show specific number of top counters (max 25)
     """
     embed.add_field(
         name="📊 User Commands",
@@ -153,7 +153,11 @@ async def set_count(ctx):
 async def show_leaderboard(ctx, bot):
     limit = 10
     try:
-        limit = int(ctx.message.content.split(' ')[2])
+        items = ctx.message.content.split(' ')
+        if len(items) > 2:
+            limit = int(items[2])
+        elif len(items) == 2:
+            limit = int(items[1])
     except (IndexError, ValueError):
         pass
     current_count, _, _ = get_channel_info(ctx.channel.id)
@@ -208,30 +212,35 @@ async def counting_chat_evaluation(message):
     try:
         number = int(message.content)
     except ValueError:
+        await message.channel.send("❌ Only numbers are allowed in this channel!", delete_after=5)
+        await message.delete()
         return
 
     if number == current_count + 1 and message.author.id != last_user_id:
         update_channel_count(message.channel.id, number, message.author.id)
         update_leaderboard(message.channel.id, message.author.id)
         await message.add_reaction('✅')
-    else:
-        if message.author.id == last_user_id:
-            await message.delete()
-            await message.channel.send(
+    elif message.author.id == last_user_id:
+        await message.delete()
+        await message.channel.send(
                 f"❌ {message.author.mention}, you can't count twice in a row!",
                 delete_after=5
-            )
-        else:
-            await message.delete()
-            error_msg = f"❌ Wrong number! The count was at {current_count}."
-            if reset_on_wrong:
-                error_msg += " Starting over!"
-                update_channel_count(message.channel.id, 0, 0)
-                reset_leaderboard(message.channel.id)
-            await message.channel.send(error_msg, delete_after=5)
+        )
+    else:
+        await message.delete()
+        error_msg = f"❌ Wrong number! The count was at {current_count}."
+        if reset_on_wrong:
+            error_msg += " Starting over!"
+            update_channel_count(message.channel.id, 0, 0)
+            reset_leaderboard(message.channel.id)
+        await message.channel.send(error_msg, delete_after=5)
 
 async def counting_commands(ctx, bot):
-    command = ctx.message.content.split(' ')[1]
+    try:
+        command = ctx.message.content.split(' ')[1]
+    except IndexError:
+        command = 'help'
+
     if command == 'unlink':
         return await unlink_channel(ctx)
     elif command == 'settings':

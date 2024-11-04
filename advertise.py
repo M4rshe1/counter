@@ -23,12 +23,12 @@ async def help_command(ctx):
     )
 
     admin_commands = """
-    `Q!advertise link- <channel_id> <alias>` - Set up current channel for advertisement
-    `Q!advertise unlink <channel_id>` - Unlink current channel from advertisement
-    `Q!advertise message <alias> <message>` - Set advertisement message
-    `Q!advertise interval <alias> <pattern>` - Set advertisement crontab: [Pattern Generator](https://crontab.guru/)
-    `Q!advertise settings` - Show current server advertisement settings
-    `Q!advertise <alias>` - Show advertisement message for alias
+    `/advertise link- <channel_id> <alias>` - Set up current channel for advertisement
+    `/advertise unlink <channel_id>` - Unlink current channel from advertisement
+    `/advertise message <alias> <message>` - Set advertisement message
+    `/advertise interval <alias> <pattern>` - Set advertisement crontab: [Pattern Generator](https://crontab.guru/)
+    `/advertise settings` - Show current server advertisement settings
+    `/advertise <alias>` - Show advertisement message for alias
     """
     embed.add_field(
         name="👑 Admin Commands (Requires Manage Channels)",
@@ -116,11 +116,11 @@ async def link_advertise_channel(ctx):
     embed = discord.Embed(title="Setup Complete", color=discord.Color.green())
     embed.add_field(name="Channel ID", value=channel_id, inline=True)
     embed.add_field(name="Alias", value=alias, inline=True)
-    embed.add_field(name="Set Message command", value="Q!advertise message <alias> <message>", inline=False)
-    embed.add_field(name="Set Interval command", value="Q!advertise interval <alias> <pattern>", inline=False)
-    embed.add_field(name="Unlink command", value="Q!advertise unlink <channel_id>", inline=False)
-    embed.add_field(name="Show Settings command", value="Q!advertise settings", inline=False)
-    embed.add_field(name="Help command", value="Q!advertise-help", inline=False)
+    embed.add_field(name="Set Message command", value="/advertise message <alias> <message>", inline=False)
+    embed.add_field(name="Set Interval command", value="/advertise interval <alias> <pattern>", inline=False)
+    embed.add_field(name="Unlink command", value="/advertise unlink <channel_id>", inline=False)
+    embed.add_field(name="Show Settings command", value="/advertise settings", inline=False)
+    embed.add_field(name="Help command", value="/advertise-help", inline=False)
     await ctx.send(embed=embed)
 
 async def unlink_advertise_channel(ctx):
@@ -168,7 +168,11 @@ async def advertise(ctx):
 
 
 async def advertise_commands(ctx, bot):
-    command = ctx.message.content.split(' ')[1]
+    try:
+        command = ctx.message.content.split(' ')[1]
+    except IndexError:
+        command = 'help'
+
     if command == 'help':
         await help_command(ctx)
     elif command == 'link':
