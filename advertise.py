@@ -33,6 +33,7 @@ async def help_command(ctx):
     `/advertise interval <alias> <pattern>` - Set advertisement crontab: [Pattern Generator](https://crontab.guru/)
     `/advertise settings` - Show current server advertisement settings
     `/advertise send <alias>` - Send advertisement now
+    `/advertise image <alias> <image_url>` - Add image to advertisement
     `/advertise <alias>` - Show advertisement message for alias
     """
     embed.add_field(
@@ -166,6 +167,7 @@ async def link_advertise_channel(ctx):
     embed.add_field(name="Set Interval command", value="/advertise interval <alias> <pattern>", inline=False)
     embed.add_field(name="Unlink command", value="/advertise unlink <alias>", inline=False)
     embed.add_field(name="Show Settings command", value="/advertise settings", inline=False)
+    embed.add_field(name="Add Image command", value="/advertise image <alias> <image_url>", inline=False)
     embed.add_field(name="Help command", value="/advertise help", inline=False)
     await ctx.send(embed=embed)
 
