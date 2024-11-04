@@ -109,7 +109,6 @@ async def set_advertise_interval(ctx, bot):
     c.execute('UPDATE advetisement SET interval = ? WHERE server_id = ? AND alias = ?', (interval, ctx.guild.id, alias))
     conn.commit()
     conn.close()
-    print(crontabs)
     cron = croniter.croniter(interval)
     next_time = cron.get_next(datetime)
     await ctx.send('Advertisement interval has been set!\nThe next advertisement will be at: ' + str(next_time))
