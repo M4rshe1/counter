@@ -34,7 +34,9 @@ def setup_database():
                   message TEXT,
                   interval TEXT,
                   alias TEXT,
+                  image_url TEXT,
                   PRIMARY KEY (channel_id, alias))''')
+
 
     c.execute('''CREATE TABLE IF NOT EXISTS allowed_users
                     (user_id INTEGER,

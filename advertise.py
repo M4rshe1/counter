@@ -48,13 +48,18 @@ async def help_command(ctx):
 async def run_advertisement(channel_id: int, bot):
     conn = sqlite3.connect('quantic.db')
     c = conn.cursor()
-    c.execute('SELECT message FROM advetisement WHERE channel_id = ?', (channel_id,))
+    c.execute('SELECT message, image_url FROM advetisement WHERE channel_id = ?', (channel_id,))
     result = c.fetchone()
     conn.close()
     if result:
         channel = bot.get_channel(channel_id)
         try:
-            message = await channel.send(result[0])
+            title = result[0].split('\n')[0]
+            body = result[0].split('\n', 1)[1]
+            embed = discord.Embed(title=title, color=discord.Color.purple(), description=body)
+            if result[1]:
+                embed.set_image(url=result[1])
+            message = await channel.send(embed=embed)
             await asyncio.sleep(5)
             await message.publish()
             print("Message published successfully.")
@@ -126,7 +131,7 @@ async def link_advertise_channel(ctx):
     try:
         mentioned_channel = ctx.message.channel_mentions[0]
         channel_id = mentioned_channel.id
-        alias = ctx.message.content.split(' ',3)[3].trim().replace(' ', '_').lower()
+        alias = ctx.message.content.split(' ',3)[3].strip().replace(' ', '_').lower()
     except ValueError:
         await ctx.send('Invalid channel ID!')
         return
@@ -198,11 +203,18 @@ async def advertise(ctx):
         await ctx.send('Please provide an alias!')
         return
 
-    c.execute('SELECT message FROM advetisement WHERE server_id = ? AND alias = ?', (ctx.guild.id, alias))
+    c.execute('SELECT message, image_url FROM advetisement WHERE server_id = ? AND alias = ?', (ctx.guild.id, alias))
     result = c.fetchone()
     conn.close()
     if result:
-        await ctx.send(result[0] if result[0] else 'No message set for this alias!')
+        if not result[0]:
+            await ctx.send('No message set for this alias!')
+            return
+        title = result[0].split('\n')[0]
+        body = result[0].split('\n', 1)[1]
+        embed = discord.Embed(title=title, color=discord.Color.purple(), description=body)
+        embed.set_image(url=result[1])
+        await ctx.send(embed=embed)
     else:
         await ctx.send('This alias is not set up for advertisement!')
 
@@ -218,6 +230,16 @@ async def advertise_now(ctx, bot):
         await run_advertisement(result[0], bot)
     else:
         await ctx.send('This alias is not set up for advertisement!')
+
+async def add_image_to_advertisement(ctx):
+    alias = ctx.message.content.split(' ')[2]
+    image_url = ctx.message.content.split(' ', 3)[3]
+    conn = sqlite3.connect('quantic.db')
+    c = conn.cursor()
+    c.execute('UPDATE advetisement SET image_url = ? WHERE server_id = ? AND alias = ?', (image_url, ctx.guild.id, alias))
+    conn.commit()
+    conn.close()
+    await ctx.send('Image has been added to advertisement!')
 
 
 async def advertise_commands(ctx, bot):
@@ -238,6 +260,8 @@ async def advertise_commands(ctx, bot):
         await set_advertise_interval(ctx, bot)
     elif command == 'settings':
         await show_advertise_settings(ctx)
+    elif command == 'image':
+        await add_image_to_advertisement(ctx)
     elif command == 'send':
         await advertise_now(ctx, bot)
     else:
