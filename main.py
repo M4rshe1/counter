@@ -1,5 +1,3 @@
-from encodings.aliases import aliases
-
 import discord
 from discord.ext import commands
 import os
@@ -60,6 +58,8 @@ async def help_command(ctx):
         value=advertise_help,
         inline=False
     )
+
+    ctx.send(embed=embed)
 
 
 @bot.command(name='counting')

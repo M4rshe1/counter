@@ -109,7 +109,7 @@ async def link_advertise_channel(ctx):
         await ctx.send('This alias is already in use for this server!')
         return
 
-    c.execute('INSERT OR REPLACE INTO advetisement (channel_id, server_id, alias) VALUES (?, ?, ?)',
+    c.execute('INSERT OR REPLACE INTO advertisement (channel_id, server_id, alias) VALUES (?, ?, ?)',
               (channel_id, ctx.guild.id, alias))
     conn.commit()
     conn.close()
