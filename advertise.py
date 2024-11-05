@@ -1,6 +1,7 @@
 import asyncio
 import sqlite3
 from datetime import datetime
+from utils import send_error_message
 
 import aiocron
 import discord
@@ -12,12 +13,14 @@ crontabs = {}
 def setup_crontabs(bot):
     conn = sqlite3.connect('quantic.db')
     c = conn.cursor()
-    c.execute('SELECT channel_id, interval FROM advetisement WHERE interval IS NOT NULL')
+    c.execute('SELECT channel_id, interval, alias, server_id FROM advetisement WHERE interval IS NOT NULL')
     results = c.fetchall()
     conn.close()
 
-    for channel_id, interval in results:
-        crontabs[channel_id] = aiocron.crontab(interval, func=run_advertisement, start=True, args=(channel_id, bot))
+
+    for channel_id, interval, alias, server_id in results:
+        if interval:
+            crontabs[f"{alias}_{server_id}"] = aiocron.crontab(interval, func=run_advertisement, start=True, args=(channel_id, bot))
 
 async def help_command(ctx):
     embed = discord.Embed(
@@ -63,13 +66,12 @@ async def run_advertisement(channel_id: int, bot):
             message = await channel.send(embed=embed)
             await asyncio.sleep(5)
             await message.publish()
-            print("Message published successfully.")
         except discord.Forbidden:
-            print("Bot lacks permissions to publish the message.")
+            send_error_message(channel_id, "I don't have permission to send messages in this channel!")
         except discord.HTTPException as e:
-            print(f"An error occurred: {e}")
+            send_error_message(channel_id, "An error occurred while sending the message!")
     else:
-        print('No advertisement message found!')
+        send_error_message(channel_id, "No message set for this alias!")
 
 async def show_advertise_settings(ctx):
     conn = sqlite3.connect('quantic.db')
@@ -93,6 +95,7 @@ async def set_advertise_interval(ctx, bot):
     alias = ctx.message.content.split(' ')[2]
     interval = ctx.message.content.split(' ', 3)[3]
     conn = sqlite3.connect('quantic.db')
+    channel_id = ctx.guild.get_channel(ctx.message.channel.id).id
     c = conn.cursor()
     result = c.execute('SELECT * FROM advetisement WHERE server_id = ? AND alias = ?', (ctx.guild.id, alias)).fetchone()
     if not result:
@@ -101,6 +104,7 @@ async def set_advertise_interval(ctx, bot):
         return
 
     try:
+        delete_cron_job(f"{alias}_{ctx.guild.id}")
         cron_job(f"{alias}_{ctx.guild.id}", ctx.message.channel.id, interval, bot)
     except ValueError as e:
         print(e)
@@ -112,6 +116,8 @@ async def set_advertise_interval(ctx, bot):
     conn.close()
     cron = croniter.croniter(interval)
     next_time = cron.get_next(datetime)
+    # convert it to the user's timezone
+    next_time = next_time.astimezone(ctx.message.author.display_name)
     await ctx.send('Advertisement interval has been set!\nThe next advertisement will be at: ' + str(next_time))
 
 def cron_job(job_id: str, channel_id: int, expression: str, bot):

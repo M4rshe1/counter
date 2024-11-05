@@ -97,6 +97,9 @@ async def help_command(ctx):
     `/quantic add @user` - Add user to allowed users
     `/quantic remove @user` - Remove user from allowed users
     `/quantic list` - List allowed users
+    `/quantic erroradd #channel` - Set error channel
+    `/quantic errorremove #channel` - Remove error channel
+    `/quantic errorlist` - List error channel
     """
     embed.add_field(
         name="👑 Admin Commands (Requires Manage Channels)",
