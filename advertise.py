@@ -92,10 +92,9 @@ async def show_advertise_settings(ctx):
 
 
 async def set_advertise_interval(ctx, bot):
-    alias = ctx.message.content.split(' ')[2]
+    alias = ctx.message.content.split(' ')[2].strip().replace(' ', '_').lower()
     interval = ctx.message.content.split(' ', 3)[3]
     conn = sqlite3.connect('quantic.db')
-    channel_id = ctx.guild.get_channel(ctx.message.channel.id).id
     c = conn.cursor()
     result = c.execute('SELECT * FROM advetisement WHERE server_id = ? AND alias = ?', (ctx.guild.id, alias)).fetchone()
     if not result:
@@ -116,8 +115,8 @@ async def set_advertise_interval(ctx, bot):
     conn.close()
     cron = croniter.croniter(interval)
     next_time = cron.get_next(datetime)
-    # convert it to the user's timezone
-    next_time = next_time.astimezone(ctx.message.author.display_name)
+    # calculate the next time the advertisement will run based on the users timezone
+
     await ctx.send('Advertisement interval has been set!\nThe next advertisement will be at: ' + str(next_time))
 
 def cron_job(job_id: str, channel_id: int, expression: str, bot):
