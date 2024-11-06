@@ -20,14 +20,13 @@ async def error_commands(ctx):
         await ctx.send(f'Error channel has been set to <#{channel_id}>!')
 
     if command == 'remove':
-        channel_id = ctx.message.channel_mentions[0].id
-        result = c.execute('DELETE FROM channels WHERE server_id = ? AND channel_id = ? AND type = ?', (ctx.guild.id, channel_id, 'ERROR'))
+        result = c.execute('DELETE FROM channels WHERE server_id = ? AND type = ?', (ctx.guild.id, 'ERROR'))
         conn.commit()
         conn.close()
         if result.rowcount == 0:
             await ctx.send('Error channel has not been set!')
             return
-        await ctx.send('Error channel has been removed!')
+        await ctx.send(f"The channel <#{result[0]}> has been removed from being an error channel!")
 
     if command == 'list':
         c.execute('SELECT channel_id FROM channels WHERE server_id = ? AND type = ?', (ctx.guild.id, 'ERROR'))
@@ -76,7 +75,11 @@ class BanButton(discord.ui.View):
 
     @discord.ui.button(label="Ban", style=discord.ButtonStyle.danger)
     async def ban_button(self, interaction, button):
-        await self.member.ban(reason=self.reason)
+        try:
+            await self.member.ban(reason=self.reason)
+        except discord.Forbidden:
+            await interaction.response.send_message('I do not have permission to ban this user!', ephemeral=True)
+            return
         embed = discord.Embed(title='User Banned', color=discord.Color.red())
         embed.add_field(name='User', value=f"<@{self.member.id}>", inline=False)
         embed.add_field(name='Reason', value=self.reason, inline=False)
@@ -85,7 +88,11 @@ class BanButton(discord.ui.View):
 
     @discord.ui.button(label="Remove Timeout", style=discord.ButtonStyle.green)
     async def remove_timeout_button(self, interaction, button):
-        await self.member.timeout(None)
+        try:
+            await self.member.timeout(None)
+        except discord.Forbidden:
+            await interaction.response.send_message('I do not have permission to remove the timeout!', ephemeral=True)
+            return
         await interaction.message.delete()
         embed = discord.Embed(title='Timeout removed', color=discord.Color.green())
         embed.add_field(name='User', value=f"<@{self.member.id}>", inline=False)
@@ -114,26 +121,30 @@ async def ban_commands(ctx):
 
         c.execute('SELECT channel_id FROM channels WHERE server_id = ? AND type = ?', (ctx.guild.id, 'REPORT'))
         result = c.fetchone()
-        if result:
-            report_channel = ctx.guild.get_channel(result[0])
-            if report_channel:
-                member = ctx.guild.get_member(user.id)
-                if not member:
-                    await ctx.send('User is not in the server!')
-                    return
-                duration = timedelta(weeks=2)
-                await member.timeout(duration, reason=reason)
-
-                view = BanButton(member, reason)
-                embed = discord.Embed(title='User Ban report', color=discord.Color.red())
-                embed.add_field(name='User', value=user.name, inline=False)
-                embed.add_field(name='Reason', value=reason, inline=False)
-                embed.add_field(name='Author', value=ctx.message.author.name, inline=False)
-                embed.add_field(name='Timout Until', value=(datetime.now() + duration).strftime('%Y-%m-%d %H:%M:%S'), inline=False)
-                await report_channel.send(embed=embed, view=view)
-
-        else:
+        if not result:
             await ctx.send('No report channel has been set!')
+            return
+        report_channel = ctx.guild.get_channel(result[0])
+        if not report_channel:
+            await ctx.send('Report channel is not found!, Maybe it has been deleted!')
+            return
+        member = ctx.guild.get_member(user.id)
+        if not member:
+            await ctx.send('User is not in the server!')
+            return
+        duration = timedelta(weeks=2)
+        try:
+            await member.timeout(duration, reason=reason)
+        except discord.Forbidden:
+            await ctx.send('I do not have permission to ban this user!')
+            return
+        view = BanButton(member, reason)
+        embed = discord.Embed(title='User Ban report', color=discord.Color.red())
+        embed.add_field(name='User', value=user.name, inline=False)
+        embed.add_field(name='Reason', value=reason, inline=False)
+        embed.add_field(name='Author', value=ctx.message.author.name, inline=False)
+        embed.add_field(name='Timout Until', value=(datetime.now() + duration).strftime('%Y-%m-%d %H:%M:%S'), inline=False)
+        await report_channel.send(embed=embed, view=view)
 
 
     elif command == 'set':
@@ -149,16 +160,15 @@ async def ban_commands(ctx):
         await ctx.send(f'Report channel has been set to <#{channel_id}>!')
 
     if command == 'remove':
-        channel_id = ctx.message.channel_mentions[0].id
         c.execute('SELECT channel_id FROM channels WHERE server_id = ? AND type = ?', (ctx.guild.id, 'REPORT'))
         result = c.fetchone()
         if result:
             c.execute('INSERT INTO channels (server_id, channel_id, type) VALUES (?, ?, ?)', (ctx.guild.id, channel_id, 'REPORT'))
             conn.commit()
             conn.close()
-            await ctx.send(f'{user.name} has been unbanned from <#{channel_id}>!')
+            await ctx.send(f'The channel <#{result[0]}> has been removed from being a report channel!')
         else:
-            await ctx.send(f'{user.name} is not in the database!')
+            await ctx.send('Report channel has not been set!')
 
     if command == 'list':
         c.execute('SELECT channel_id FROM channels WHERE server_id = ? AND type = ?', (ctx.guild.id, 'REPORT'))

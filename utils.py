@@ -60,8 +60,8 @@ def setup_database():
 
 
     c.execute('''CREATE TABLE IF NOT EXISTS channels
-                 (server_id INTEGER PRIMARY KEY,
-                  channel_id INTEGER,
+                 (server_id INTEGER,
+                  channel_id INTEGER PRIMARY KEY,
                   type TEXT)''')
     conn.commit()
     conn.close()

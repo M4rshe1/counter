@@ -108,7 +108,7 @@ async def help_command(ctx):
 
     quantic_error = """
     `/quantic error set #channel` - Set error channel
-    `/quantic error remove #channel` - Remove error channel
+    `/quantic error remove` - Remove error channel
     `/quantic error list` - List error channel
     """
 
@@ -121,7 +121,7 @@ async def help_command(ctx):
     quantic_report_system = """
     `/quantic ban @user` - Make a ban report
     `/quantic ban set #channel` - Set ban report channel
-    `/quantic ban remove #channel` - Remove ban report channel
+    `/quantic ban remove` - Remove ban report channel
     `/quantic ban list` - List ban report channels
     """
 
