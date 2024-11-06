@@ -8,7 +8,7 @@ async def error_commands(ctx):
     command = ctx.message.content.split(' ')[2]
     conn = sqlite3.connect('quantic.db')
     c = conn.cursor()
-    if command == 'add':
+    if command == 'set':
         channel_id = ctx.message.channel_mentions[0].id
         existing = c.execute('SELECT channel_id FROM channels WHERE server_id = ? AND type = ?', (ctx.guild.id, 'ERROR')).fetchone()
         if existing:

@@ -107,7 +107,7 @@ async def help_command(ctx):
     )
 
     quantic_error = """
-    `/quantic error add #channel` - Set error channel
+    `/quantic error set #channel` - Set error channel
     `/quantic error remove #channel` - Remove error channel
     `/quantic error list` - List error channel
     """
