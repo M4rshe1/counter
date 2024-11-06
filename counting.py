@@ -129,7 +129,11 @@ def get_leaderboard(channel_id: int, limit: int = 10) -> list:
 def update_leaderboard(channel_id: int, user_id: int):
     conn = sqlite3.connect('quantic.db')
     c = conn.cursor()
-    c.execute('''INSERT INTO leaderboard (channel_id, user_id, count)
+    result = c.execute('SELECT count FROM leaderboard WHERE channel_id = ? AND user_id = ?', (channel_id, user_id)).fetchone()
+    if result:
+        c.execute('UPDATE leaderboard SET count = count + 1 WHERE channel_id = ? AND user_id = ?', (channel_id, user_id))
+    else:
+        c.execute('''INSERT INTO leaderboard (channel_id, user_id, count)
                  VALUES (?, ?, 1)
                  ON CONFLICT(channel_id, user_id) DO UPDATE SET
                  count = count + 1''', (channel_id, user_id))
