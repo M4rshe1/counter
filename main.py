@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 
 from advertise import advertise_commands, setup_crontabs
 from counting import counting_commands, counting_chat_evaluation, show_leaderboard
-from utils import setup_database, manage_users
+from utils import setup_database
+from quantic import quantic_commands
 
 intents = discord.Intents.all()
 
@@ -57,7 +58,7 @@ def channel_is_in_guild(channel_id):
 @bot.hybrid_command(name='quantic')
 @is_allowed()
 async def quantic(ctx):
-    await manage_users(ctx)
+    await quantic_commands(ctx, bot)
 
 @bot.hybrid_command()
 @is_allowed()
@@ -93,17 +94,40 @@ async def help_command(ctx):
         inline=False
     )
 
-    admin_commands = """
-    `/quantic add @user` - Add user to allowed users
-    `/quantic remove @user` - Remove user from allowed users
-    `/quantic list` - List allowed users
-    `/quantic erroradd #channel` - Set error channel
-    `/quantic errorremove #channel` - Remove error channel
-    `/quantic errorlist` - List error channel
+    quantic_user_management = """
+    `/quantic user add @user` - Add user to allowed users
+    `/quantic user remove @user` - Remove user from allowed users
+    `/quantic user list` - List allowed users
     """
+
     embed.add_field(
-        name="👑 Admin Commands (Requires Manage Channels)",
-        value=admin_commands,
+        name="👤 Quantic User Management",
+        value=quantic_user_management,
+        inline=False
+    )
+
+    quantic_error = """
+    `/quantic error add #channel` - Set error channel
+    `/quantic error remove #channel` - Remove error channel
+    `/quantic error list` - List error channel
+    """
+
+    embed.add_field(
+        name="🚨 Quantic Error System",
+        value=quantic_error,
+        inline=False
+    )
+
+    quantic_report_system = """
+    `/quantic ban @user` - Make a ban report
+    `/quantic ban set #channel` - Set ban report channel
+    `/quantic ban remove #channel` - Remove ban report channel
+    `/quantic ban list` - List ban report channels
+    """
+
+    embed.add_field(
+        name="🔨 Quantic Report System",
+        value=quantic_report_system,
         inline=False
     )
 
