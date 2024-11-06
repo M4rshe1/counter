@@ -20,7 +20,7 @@ async def error_commands(ctx):
         await ctx.send(f'Error channel has been set to <#{channel_id}>!')
 
     if command == 'remove':
-        result = c.execute('DELETE FROM channels WHERE server_id = ? AND type = ?', (ctx.guild.id, 'ERROR'))
+        result = c.execute('DELETE FROM channels WHERE server_id = ? AND type = ?', (ctx.guild.id, 'ERROR')).fetchone()
         conn.commit()
         conn.close()
         if result.rowcount == 0:
@@ -67,6 +67,16 @@ async def users_commands(ctx):
         users = [f'<@{result[0]}>' for result in results]
         await ctx.send('Users in the database:\n' + '\n'.join(users))
 
+
+async def update_embed(interaction, status, color):
+    embed = interaction.message.embeds[0]
+    embed.set_field_at(4, name='Status', value=status, inline=False)
+    embed.add_field(name='processed by', value=f"<@{interaction.user.id}> at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", inline=False)
+    embed.color = color
+    await interaction.message.edit(embed=embed)
+    await interaction.message.edit(view=None)
+
+
 class BanButton(discord.ui.View):
     def __init__(self, member, reason=None):
         super().__init__()
@@ -80,10 +90,7 @@ class BanButton(discord.ui.View):
         except discord.Forbidden:
             await interaction.response.send_message('I do not have permission to ban this user!', ephemeral=True)
             return
-        embed = discord.Embed(title='User Banned', color=discord.Color.red())
-        embed.add_field(name='User', value=f"<@{self.member.id}>", inline=False)
-        embed.add_field(name='Reason', value=self.reason, inline=False)
-        await interaction.channel.send(embed=embed)
+        await update_embed(interaction, 'Banned', discord.Color.red())
         self.stop()
 
     @discord.ui.button(label="Remove Timeout", style=discord.ButtonStyle.green)
@@ -93,11 +100,15 @@ class BanButton(discord.ui.View):
         except discord.Forbidden:
             await interaction.response.send_message('I do not have permission to remove the timeout!', ephemeral=True)
             return
-        await interaction.message.delete()
-        embed = discord.Embed(title='Timeout removed', color=discord.Color.green())
-        embed.add_field(name='User', value=f"<@{self.member.id}>", inline=False)
-        await interaction.channel.send(embed=embed)
+        await update_embed(interaction, 'Timeout Removed', discord.Color.green())
+
         self.stop()
+
+    @discord.ui.button(label="Ignore", style=discord.ButtonStyle.grey)
+    async def ignore_button(self, interaction, button):
+        await update_embed(interaction, 'Ignored', discord.Color.greyple())
+        self.stop()
+
 
 
 
@@ -139,11 +150,23 @@ async def ban_commands(ctx):
             await ctx.send('I do not have permission to ban this user!')
             return
         view = BanButton(member, reason)
-        embed = discord.Embed(title='User Ban report', color=discord.Color.red())
-        embed.add_field(name='User', value=user.name, inline=False)
-        embed.add_field(name='Reason', value=reason, inline=False)
-        embed.add_field(name='Author', value=ctx.message.author.name, inline=False)
-        embed.add_field(name='Timout Until', value=(datetime.now() + duration).strftime('%Y-%m-%d %H:%M:%S'), inline=False)
+        user_block = f'''
+        > User: `@{user.name}` (<@{user.id}>)
+        > ID: `{user.id}`
+        > Joined: `{user.joined_at.strftime('%Y-%m-%d %H:%M:%S')}`
+        '''
+
+        reason_block = f'''
+        > {reason}
+        '''
+        embed = discord.Embed(title='User Ban Report', color=discord.Color.red())
+        embed.add_field(name='User', value=user_block, inline=False)
+        embed.add_field(name='Reason(s)', value=reason_block, inline=False)
+        embed.add_field(name='Reported by', value=f"<@{ctx.author.id}>", inline=False)
+        embed.add_field(name='Timout Until', value=f"> {(datetime.now() + duration).strftime('%Y-%m-%d %H:%M:%S')}", inline=False)
+        embed.add_field(name='Status', value='Pending', inline=False)
+        embed.set_footer(text=f'The Report was created at {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+        embed.set_thumbnail(url=user. avatar.url)
         await report_channel.send(embed=embed, view=view)
 
 
@@ -182,7 +205,7 @@ async def ban_commands(ctx):
 
 
 
-async def quantic_commands(ctx, bot):
+async def quantic_commands(ctx):
     command = ctx.message.content.split(' ')[1]
     if command == 'error':
         await error_commands(ctx)

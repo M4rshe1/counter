@@ -58,7 +58,7 @@ def channel_is_in_guild(channel_id):
 @bot.hybrid_command(name='quantic')
 @is_allowed()
 async def quantic(ctx):
-    await quantic_commands(ctx, bot)
+    await quantic_commands(ctx)
 
 @bot.hybrid_command()
 @is_allowed()
