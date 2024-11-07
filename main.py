@@ -13,7 +13,7 @@ from counting import counting_chat_evaluation, show_leaderboard, counting_help_c
     counting_link_channel, update_reset_setting, counting_set_count, counting_show_settings, counting_unlink_channel
 from crontabs import setup_crontabs
 from utils import setup_database
-from quantic import error_set, error_remove, users_add, users_remove, users_list, ban_user, ban_set, ban_remove, \
+from quantic import error_set, error_remove, ban_user, ban_set, ban_remove, \
     ban_list, quantic_help_command, error_list
 from ban_button import BanButtons
 
