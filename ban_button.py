@@ -44,8 +44,8 @@ class BanButtons(discord.ui.View):
 
         self.stop()
 
-    @discord.ui.button(label="Ignore", style=discord.ButtonStyle.grey, custom_id="persistent_ignore_button")
+    @discord.ui.button(label="Keep Timeout (2W)", style=discord.ButtonStyle.grey, custom_id="persistent_ignore_button")
     async def ignore_button(self, interaction, button):
         print("ignoring")
-        await update_embed(interaction, 'Ignored', discord.Color.greyple())
+        await update_embed(interaction, 'Keep Timeout (2W)', discord.Color.greyple())
         self.stop()
