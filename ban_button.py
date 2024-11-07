@@ -11,6 +11,7 @@ async def update_embed(interaction, status, color):
     await interaction.message.edit(view=None)
 
 
+
 class BanButtons(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)

@@ -20,7 +20,7 @@ async def counting_unlink_channel(ctx: discord.Interaction):
     c.execute('DELETE FROM counting_channels WHERE channel_id = ?', (ctx.channel.id,))
     conn.commit()
     conn.close()
-    await ctx.channel.send('This channel has been unlinked from counting!')
+    await ctx.response.send_message('This channel has been unlinked from counting!')
 
 async def counting_show_settings(ctx: discord.Interaction):
     current_count, _, reset_mode = get_channel_info(ctx.channel.id)
@@ -29,14 +29,14 @@ async def counting_show_settings(ctx: discord.Interaction):
         embed = discord.Embed(title="Channel Settings", color=discord.Color.blue())
         embed.add_field(name="Current Count", value=str(current_count), inline=True)
         embed.add_field(name="Reset on Wrong", value=mode_str, inline=True)
-        await ctx.channel.send(embed=embed)
+        await ctx.response.send_message(embed=embed)
     else:
-        await ctx.channel.send('This channel is not set up for counting!')
+        await ctx.response.send_message('This channel is not set up for counting!')
 
 
 async def counting_link_channel(ctx: discord.Interaction):
     update_channel_count(ctx.channel.id, 0, 0)
-    await ctx.channel.send(f'This channel has been set up for counting! Start with 1')
+    await ctx.response.send_message(f'This channel has been set up for counting! Start with 1')
 
 async def counting_help_command(ctx: discord.Interaction):
     embed = discord.Embed(
@@ -58,8 +58,7 @@ async def counting_help_command(ctx: discord.Interaction):
     )
 
     user_commands = """
-    `/counting leaderboard` or `/counting lb` or /lb - Show top counters
-    `/lb <number>` - Show specific number of top counters (max 25)
+    `!lb <?number>` - Show specific number of top counters (max 25)
     """
     embed.add_field(
         name="📊 User Commands",
@@ -82,7 +81,7 @@ async def counting_help_command(ctx: discord.Interaction):
     )
 
     embed.set_footer(text="For additional help, contact your server administrators.")
-    await ctx.channel.send(embed=embed)
+    await ctx.response.send_message(embed=embed)
 
 
 # Helper function to update reset setting
@@ -136,14 +135,14 @@ async def counting_set_count(ctx: discord.Interaction, number: int):
         update_channel_count(ctx.channel.id, number, 0)
         if number == 0:
             reset_leaderboard(ctx.channel.id)
-            await ctx.channel.send(f'Count has been set to {number} and leaderboard has been cleared!')
+            await ctx.response.send_message(f'Count has been set to {number} and leaderboard has been cleared!')
         else:
-            await ctx.channel.send(f'Count has been set to {number}!')
+            await ctx.response.send_message(f'Count has been set to {number}!')
     else:
-        await ctx.channel.send('This channel is not set up for counting!')
+        await ctx.response.send_message('This channel is not set up for counting!')
 
 
-async def show_leaderboard(ctx: discord.Interaction, bot):
+async def show_leaderboard(ctx, bot):
     limit = 10
     try:
         items = ctx.message.content.split(' ')
@@ -155,7 +154,7 @@ async def show_leaderboard(ctx: discord.Interaction, bot):
         pass
     current_count, _, _ = get_channel_info(ctx.channel.id)
     if current_count is None:
-        await ctx.channel.send('This channel is not set up for counting!')
+        await ctx.response.send_message('This channel is not set up for counting!')
         return
 
     leaderboard = get_leaderboard(ctx.channel.id, min(limit, 25))
@@ -209,7 +208,7 @@ async def counting_chat_evaluation(message):
     try:
         number = int(message.content)
     except ValueError:
-        await message.channel.send("❌ Only numbers are allowed in this channel!", delete_after=5)
+        await message.response.send_message("❌ Only numbers are allowed in this channel!", delete_after=5)
         await message.delete()
         return
 
@@ -219,7 +218,7 @@ async def counting_chat_evaluation(message):
         await message.add_reaction('✅')
     elif message.author.id == last_user_id:
         await message.delete()
-        await message.channel.send(
+        await message.response.send_message(
                 f"❌ {message.author.mention}, you can't count twice in a row!",
                 delete_after=5
         )
@@ -230,6 +229,6 @@ async def counting_chat_evaluation(message):
             error_msg += " Starting over!"
             update_channel_count(message.channel.id, 0, 0)
             reset_leaderboard(message.channel.id)
-        await message.channel.send(error_msg, delete_after=5)
+        await message.response.send_message(error_msg, delete_after=5)
 
 

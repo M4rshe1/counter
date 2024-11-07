@@ -7,14 +7,14 @@ from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from advertise import setup_crontabs, advertise_help_command, link_advertise_channel, \
-    unlink_advertise_channel, show_advertise_settings, add_image_to_advertisement, advertise, advertise_now, \
-    set_advertise_interval, AdvertisementSetupModal
+from advertise import  advertise_help_command, link_advertise_channel, \
+    unlink_advertise_channel, show_advertise_settings, advertise, advertise_now, advertisement_settings
 from counting import counting_chat_evaluation, show_leaderboard, counting_help_command, \
     counting_link_channel, update_reset_setting, counting_set_count, counting_show_settings, counting_unlink_channel
+from crontabs import setup_crontabs
 from utils import setup_database
 from quantic import error_set, error_remove, users_add, users_remove, users_list, ban_user, ban_set, ban_remove, \
-    ban_list, quantic_help_command
+    ban_list, quantic_help_command, error_list
 from ban_button import BanButtons
 
 client = commands.Bot(command_prefix="!", intents=discord.Intents.all())
@@ -58,7 +58,7 @@ class SlashCommands(commands.Cog):
 
             @app_commands.command(name="list", description="List error channels")
             async def list(self, interaction: discord.Interaction):
-                await interaction.channel.send("Error channel list commands")
+                await error_list(interaction)
 
 
         class UserGroup(app_commands.Group, name="user"):
@@ -74,7 +74,7 @@ class SlashCommands(commands.Cog):
             async def list(self, interaction: discord.Interaction):
                 await users_list(interaction)
 
-        class BanGroup(app_commands.Group, name="ban"):
+        class ReportGroup(app_commands.Group, name="report"):
             @app_commands.command(name="set", description="Set ban report channel")
             async def set(self, interaction: discord.Interaction, channel: discord.TextChannel):
                 await ban_set(interaction, channel)
@@ -87,7 +87,7 @@ class SlashCommands(commands.Cog):
             async def list(self, interaction: discord.Interaction):
                 await ban_list(interaction)
 
-        @app_commands.command(name="report", description="Report a user")
+        @app_commands.command(name="ban", description="Make a ban report")
         async def report(self, interaction: discord.Interaction, user: discord.User, reason: str):
             await ban_user(interaction, user, reason)
 
@@ -95,7 +95,7 @@ class SlashCommands(commands.Cog):
         def __init__(self):
             super().__init__()
             self.add_command(self.UserGroup())
-            self.add_command(self.BanGroup())
+            self.add_command(self.ReportGroup())
             self.add_command(self.ErrorGroup())
 
     class CountingGroup(app_commands.Group, name="counting", description="Counting bot commands"):
@@ -142,12 +142,12 @@ class SlashCommands(commands.Cog):
 
         @app_commands.command(name="settings", description="Set advertisement details")
         async def advertisement_message(self, interaction: discord.Interaction, alias: str):
-            modal = AdvertisementSetupModal(alias=alias, client=client)
-            await interaction.response.send_modal(modal)
+            await advertisement_settings(interaction, alias)
 
         @app_commands.command(name="list", description="Show current server advertisement settings")
         async def advertisement_settings(self, interaction: discord.Interaction):
             await show_advertise_settings(interaction)
+            return
 
         @app_commands.command(name="send", description="Send advertisement now")
         async def advertisement_send(self, interaction: discord.Interaction, alias: str):
@@ -172,6 +172,11 @@ class SlashCommands(commands.Cog):
         await self.bot.tree.sync(guild=discord.Object(id=ctx.guild.id))
         await ctx.send("Commands synced!")
 
+    @commands.command()
+    async def lb(self, ctx: commands.Context, count: Optional[int] = 10):
+        await show_leaderboard(ctx, count)
+
+
 @client.event
 async def on_ready():
     print(f'Logged in as {client.user} (ID: {client.user.id})')
@@ -189,7 +194,7 @@ async def on_message(message):
     if message.author.bot:
         return
 
-    if message.content.startswith('/'):
+    if message.content.startswith('/') or message.content.startswith('!'):
         return
 
     await counting_chat_evaluation(message)

@@ -58,10 +58,12 @@ def setup_database():
                     PRIMARY KEY (user_id, server_id))''')
 
 
+
     c.execute('''CREATE TABLE IF NOT EXISTS channels
                  (server_id INTEGER,
-                  channel_id INTEGER PRIMARY KEY,
-                  type TEXT)''')
+                  channel_id INTEGER,
+                  type TEXT,
+                  PRIMARY KEY (type, channel_id))''')
     conn.commit()
     conn.close()
 
