@@ -1,39 +1,18 @@
 import os
 import sqlite3
 import discord
+from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
 from advertise import advertise_commands, setup_crontabs
 from counting import counting_commands, counting_chat_evaluation, show_leaderboard
 from utils import setup_database
-from quantic import quantic_commands
+from quantic import error_set, error_remove, users_add, users_remove, users_list
 from BanButtons import BanButtons
 
-intents = discord.Intents.all()
+client = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
-class MyBot(commands.Bot):
-    def __init__(self):
-        super().__init__(command_prefix='/', intents=intents)
-
-    async def on_ready(self):
-        print(f'Logged in as {self.user} (ID: {self.user.id})')
-        print('------')
-        # await self.tree.sync(guild=discord.Object(id=GUILD_ID))
-        setup_database()
-        setup_crontabs(self)
-        bot.add_view(BanButtons())
-        print('Setup complete!')
-
-
-bot = MyBot()
-
-load_dotenv()
-TOKEN = os.getenv('DISCORD_TOKEN')
-
-
-
-# Permission check
 def is_allowed():
     async def predicate(ctx):
         conn = sqlite3.connect('quantic.db')
@@ -53,21 +32,100 @@ def channel_is_in_guild(channel_id):
         return ctx.guild.get_channel(channel_id) is not None
     return commands.check(predicate)
 
+class SlashCommands(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.bot.loop.create_task(self.setup_group_commands())
 
-@bot.hybrid_command(name='quantic')
-@is_allowed()
-async def quantic(ctx):
-    await quantic_commands(ctx)
+    class QuanticGroup(app_commands.Group, name="quantic", description="Quantic bot administration"):
+        class ErrorGroup(app_commands.Group, name="error"):
+            @app_commands.command(name="set", description="Set error channel")
+            async def set(self, interaction: discord.Interaction, channel: discord.TextChannel):
+                await error_set(interaction, channel)
 
-@bot.hybrid_command()
-@is_allowed()
-async def sync(ctx):
-    await ctx.message.delete()
-    message = await ctx.send("Syncing...")
-    await bot.tree.sync(guild=ctx.guild)
-    await message.edit(content="Synced!", delete_after=5)
+            @app_commands.command(name="remove", description="Remove error channel")
+            async def remove(self, interaction: discord.Interaction):
+                await error_remove(interaction)
 
-@bot.hybrid_command(name='h')
+            @app_commands.command(name="list", description="List error channels")
+            async def list(self, interaction: discord.Interaction):
+                await interaction.channel.send("Error channel list commands")
+
+
+        class UserGroup(app_commands.Group, name="user"):
+            @app_commands.command(name="add", description="Add user to allowed users")
+            async def add(self, interaction: discord.Interaction, user: discord.User):
+                await users_add(interaction, user)
+
+            @app_commands.command(name="remove", description="Remove user from allowed users")
+            async def remove(self, interaction: discord.Interaction, user: discord.User):
+                await users_remove(interaction, user)
+
+            @app_commands.command(name="list", description="List allowed users")
+            async def list(self, interaction: discord.Interaction):
+                await users_list(interaction)
+
+        class BanGroup(app_commands.Group, name="ban"):
+            @app_commands.command(name="set", description="Set ban report channel")
+            async def set(self, interaction: discord.Interaction, channel: discord.TextChannel):
+                await interaction.channel.send("Ban report set commands")
+
+            @app_commands.command(name="remove", description="Remove ban report channel")
+            async def remove(self, interaction: discord.Interaction):
+                await interaction.channel.send("Ban report remove commands")
+
+            @app_commands.command(name="list", description="List ban report channels")
+            async def list(self, interaction: discord.Interaction):
+                await interaction.channel.send("Ban report list commands")
+
+            @app_commands.command(name="ban", description="Ban a user from the server")
+            async def ban(self, interaction: discord.Interaction, user: discord.User):
+                print("Ban user")
+                await interaction.channel.send(f"Ban user {user.name}")
+
+
+        def __init__(self):
+            super().__init__()
+            self.add_command(self.UserGroup())
+            self.add_command(self.BanGroup())
+            self.add_command(self.ErrorGroup())
+
+    async def setup_group_commands(self):
+        self.bot.tree.add_command(self.QuanticGroup())
+        await self.bot.tree.sync()
+
+    @commands.command()
+    async def h(self, interaction: discord.Interaction):
+        await help_command(interaction)
+
+    @commands.command()
+    async def sync(self, ctx: commands.Context):
+        await self.bot.tree.sync(guild=discord.Object(id=ctx.guild.id))
+        await ctx.send("Commands synced!")
+
+@client.event
+async def on_ready():
+    print(f'Logged in as {client.user} (ID: {client.user.id})')
+    print('------')
+    # Add the SlashCommands cog after the bot is ready
+    setup_database()
+    setup_crontabs(client)
+    client.add_view(BanButtons())
+    await client.add_cog(SlashCommands(client))
+
+
+
+load_dotenv()
+TOKEN = os.getenv('DISCORD_TOKEN')
+
+
+
+
+
+
+
+
+
 async def help_command(ctx):
     embed = discord.Embed(
         title="📋 Quantic Bot Help",
@@ -130,29 +188,29 @@ async def help_command(ctx):
         inline=False
     )
 
-    await ctx.send(embed=embed)
+    await ctx.channel.send(embed=embed)
 
 
-@bot.hybrid_command(name='counting')
-@is_allowed()
-async def counting(ctx):
-    return await counting_commands(ctx, bot)
+# @bot.hybrid_command(name='counting')
+# @is_allowed()
+# async def counting(ctx):
+#     return await counting_commands(ctx, bot)
+#
+#
+# @bot.hybrid_command(name='advertise')
+# @is_allowed()
+# async def advertise(ctx):
+#     return await advertise_commands(ctx, bot)
+#
+# @bot.hybrid_command(name='lb')
+# async def leaderboard(ctx):
+#     await show_leaderboard(ctx, bot)
 
 
-@bot.hybrid_command(name='advertise')
-@is_allowed()
-async def advertise(ctx):
-    return await advertise_commands(ctx, bot)
 
-@bot.hybrid_command(name='lb')
-async def leaderboard(ctx):
-    await show_leaderboard(ctx, bot)
-
-
-
-@bot.event
+@client.event
 async def on_message(message):
-    await bot.process_commands(message)
+    await client.process_commands(message)
 
     if message.author.bot:
         return
@@ -166,4 +224,4 @@ async def on_message(message):
 
 
 
-bot.run(TOKEN)
+client.run(TOKEN)
