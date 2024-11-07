@@ -42,41 +42,6 @@ async def error_list(ctx: discord.Interaction):
     channels = [f'<#{result[0]}>' for result in results]
     await ctx.response.send_message('Channels in the database:\n' + '\n'.join(channels), ephemeral=True)
 
-
-async def users_add(ctx: discord.Interaction, user):
-    user_id = user.id
-    conn = sqlite3.connect('quantic.db')
-    c = conn.cursor()
-    c.execute('INSERT INTO allowed_users (user_id, server_id) VALUES (?, ?)', (user_id, ctx.guild.id))
-    conn.commit()
-    conn.close()
-    await ctx.response.send_message(f'{user.name} has been added to the database!', ephemeral=True)
-
-async def users_remove(ctx: discord.Interaction, user):
-    user_id = user.id
-    conn = sqlite3.connect('quantic.db')
-    c = conn.cursor()
-    count = c.execute('DELETE FROM allowed_users WHERE user_id = ? AND server_id = ?', (user_id, ctx.guild.id)).rowcount
-    conn.commit()
-    conn.close()
-    if count == 0:
-        await ctx.response.send_message(f'{user.name} is not in the database!', ephemeral=True)
-        return
-    await ctx.response.send_message(f'{user.name} has been removed from the database!', ephemeral=True)
-
-async def users_list(ctx: discord.Interaction):
-    conn = sqlite3.connect('quantic.db')
-    c = conn.cursor()
-    c.execute('SELECT user_id FROM allowed_users WHERE server_id = ?', (ctx.guild.id,))
-    results = c.fetchall()
-    conn.close()
-    if not results:
-        await ctx.response.send_message('No users have been added to the database!', ephemeral=True)
-        return
-    users = [f'<@{result[0]}>' for result in results]
-    await ctx.response.send_message('Users in the database:\n' + '\n'.join(users), ephemeral=True)
-
-
 async def ban_set(ctx: discord.Interaction, channel):
     channel_id = channel.id
     conn = sqlite3.connect('quantic.db')
