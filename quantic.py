@@ -131,6 +131,12 @@ async def ban_user(ctx: discord.Interaction, user, reason):
         await ctx.response.send_message('User is not in the server!')
         return
     duration = timedelta(weeks=2)
+
+    # check if user has same or higher role
+    if ctx.user.top_role <= member.top_role:
+        await ctx.response.send_message('You cannot ban a user with the same or higher role!')
+        return
+
     try:
         await member.timeout(duration, reason=reason)
     except discord.Forbidden:
