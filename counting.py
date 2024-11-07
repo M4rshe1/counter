@@ -154,7 +154,7 @@ async def show_leaderboard(ctx, bot):
         pass
     current_count, _, _ = get_channel_info(ctx.channel.id)
     if current_count is None:
-        await ctx.response.send_message('This channel is not set up for counting!')
+        await ctx.send('This channel is not set up for counting!')
         return
 
     leaderboard = get_leaderboard(ctx.channel.id, min(limit, 25))
