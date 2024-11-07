@@ -80,7 +80,6 @@ class SlashCommands(commands.Cog):
 
         def __init__(self):
             super().__init__()
-            self.add_command(self.UserGroup())
             self.add_command(self.ReportGroup())
             self.add_command(self.ErrorGroup())
 
