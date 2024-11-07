@@ -65,5 +65,3 @@ def setup_database():
     conn.commit()
     conn.close()
 
-
-

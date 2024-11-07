@@ -13,32 +13,32 @@ def update_channel_count(channel_id: int, count: int, user_id: int):
     conn.commit()
     conn.close()
 
-async def unlink_channel(ctx):
+async def counting_unlink_channel(ctx: discord.Interaction):
     conn = sqlite3.connect('quantic.db')
     c = conn.cursor()
     c.execute('SELECT * FROM leaderboard WHERE channel_id = ?', (ctx.channel.id,))
     c.execute('DELETE FROM counting_channels WHERE channel_id = ?', (ctx.channel.id,))
     conn.commit()
     conn.close()
-    await ctx.send('This channel has been unlinked from counting!')
+    await ctx.channel.send('This channel has been unlinked from counting!')
 
-async def show_settings(ctx):
+async def counting_show_settings(ctx: discord.Interaction):
     current_count, _, reset_mode = get_channel_info(ctx.channel.id)
     if current_count is not None:
         mode_str = "enabled" if reset_mode else "disabled"
         embed = discord.Embed(title="Channel Settings", color=discord.Color.blue())
         embed.add_field(name="Current Count", value=str(current_count), inline=True)
         embed.add_field(name="Reset on Wrong", value=mode_str, inline=True)
-        await ctx.send(embed=embed)
+        await ctx.channel.send(embed=embed)
     else:
-        await ctx.send('This channel is not set up for counting!')
+        await ctx.channel.send('This channel is not set up for counting!')
 
 
-async def link_channel(ctx):
+async def counting_link_channel(ctx: discord.Interaction):
     update_channel_count(ctx.channel.id, 0, 0)
-    await ctx.send(f'This channel has been set up for counting! Start with 1')
+    await ctx.channel.send(f'This channel has been set up for counting! Start with 1')
 
-async def help_command(ctx):
+async def counting_help_command(ctx: discord.Interaction):
     embed = discord.Embed(
         title="📋 Counting Bot Help",
         description="A bot for managing counting channels with various features.",
@@ -47,7 +47,6 @@ async def help_command(ctx):
 
     admin_commands = """
     `/counting link` - Set up current channel for counting
-    `/counting reset` - Reset count to zero
     `/counting set <number>` - Set count to specific number
     `/counting mode <True/False>` - Toggle count reset on wrong numbers
     `/counting settings` - Show current channel settings
@@ -83,26 +82,17 @@ async def help_command(ctx):
     )
 
     embed.set_footer(text="For additional help, contact your server administrators.")
-    await ctx.send(embed=embed)
+    await ctx.channel.send(embed=embed)
 
-
-async def reset_count(ctx):
-    current_count, _, _ = get_channel_info(ctx.channel.id)
-    if current_count is not None:
-        update_channel_count(ctx.channel.id, 0, 0)
-        reset_leaderboard(ctx.channel.id)
-        await ctx.send('Count has been reset to 0 and leaderboard has been cleared!')
-    else:
-        await ctx.send('This channel is not set up for counting!')
 
 # Helper function to update reset setting
-def update_reset_setting(channel_id: int, reset_on_wrong: bool):
+def update_reset_setting(ctx: discord.Interaction, reset_on_wrong: bool):
     conn = sqlite3.connect('quantic.db')
     c = conn.cursor()
     c.execute('''UPDATE counting_channels 
                  SET reset_on_wrong = ?
                  WHERE channel_id = ?''',
-              (reset_on_wrong, channel_id))
+              (reset_on_wrong, ctx.channel.id))
     conn.commit()
     conn.close()
 
@@ -140,21 +130,20 @@ def update_leaderboard(channel_id: int, user_id: int):
     conn.commit()
     conn.close()
 
-async def set_count(ctx):
-    number = int(ctx.message.content.split(' ')[2])
+async def counting_set_count(ctx: discord.Interaction, number: int):
     current_count, _, _ = get_channel_info(ctx.channel.id)
     if current_count is not None:
         update_channel_count(ctx.channel.id, number, 0)
         if number == 0:
             reset_leaderboard(ctx.channel.id)
-            await ctx.send(f'Count has been set to {number} and leaderboard has been cleared!')
+            await ctx.channel.send(f'Count has been set to {number} and leaderboard has been cleared!')
         else:
-            await ctx.send(f'Count has been set to {number}!')
+            await ctx.channel.send(f'Count has been set to {number}!')
     else:
-        await ctx.send('This channel is not set up for counting!')
+        await ctx.channel.send('This channel is not set up for counting!')
 
 
-async def show_leaderboard(ctx, bot):
+async def show_leaderboard(ctx: discord.Interaction, bot):
     limit = 10
     try:
         items = ctx.message.content.split(' ')
@@ -166,7 +155,7 @@ async def show_leaderboard(ctx, bot):
         pass
     current_count, _, _ = get_channel_info(ctx.channel.id)
     if current_count is None:
-        await ctx.send('This channel is not set up for counting!')
+        await ctx.channel.send('This channel is not set up for counting!')
         return
 
     leaderboard = get_leaderboard(ctx.channel.id, min(limit, 25))
@@ -242,30 +231,5 @@ async def counting_chat_evaluation(message):
             update_channel_count(message.channel.id, 0, 0)
             reset_leaderboard(message.channel.id)
         await message.channel.send(error_msg, delete_after=5)
-
-async def counting_commands(ctx, bot):
-    try:
-        command = ctx.message.content.split(' ')[1]
-    except IndexError:
-        command = 'help'
-
-    if command == 'unlink':
-        return await unlink_channel(ctx)
-    elif command == 'settings':
-        return await show_settings(ctx)
-    elif command == 'link':
-        return await link_channel(ctx)
-    elif command == 'help':
-        return await help_command(ctx)
-    elif command == 'reset':
-        return await reset_count(ctx)
-    elif command == 'set':
-        return await set_count(ctx)
-    elif command == 'leaderboard' or command == 'lb':
-        return await show_leaderboard(ctx, bot)
-    elif command == 'mode':
-        return await set_reset_mode(ctx)
-
-
 
 

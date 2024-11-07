@@ -5,7 +5,7 @@ import discord
 async def update_embed(interaction, status, color):
     embed = interaction.message.embeds[0]
     embed.set_field_at(4, name='Status', value=status, inline=False)
-    embed.add_field(name='processed by', value=f"<@{interaction.user.id}> at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", inline=False)
+    embed.add_field(name='Processed by', value=f"<@{interaction.user.id}> at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", inline=False)
     embed.color = color
     await interaction.message.edit(embed=embed)
     await interaction.message.edit(view=None)
