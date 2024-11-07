@@ -60,20 +60,6 @@ class SlashCommands(commands.Cog):
             async def list(self, interaction: discord.Interaction):
                 await error_list(interaction)
 
-
-        class UserGroup(app_commands.Group, name="user"):
-            @app_commands.command(name="add", description="Add user to allowed users")
-            async def add(self, interaction: discord.Interaction, user: discord.User):
-                await users_add(interaction, user)
-
-            @app_commands.command(name="remove", description="Remove user from allowed users")
-            async def remove(self, interaction: discord.Interaction, user: discord.User):
-                await users_remove(interaction, user)
-
-            @app_commands.command(name="list", description="List allowed users")
-            async def list(self, interaction: discord.Interaction):
-                await users_list(interaction)
-
         class ReportGroup(app_commands.Group, name="report"):
             @app_commands.command(name="set", description="Set ban report channel")
             async def set(self, interaction: discord.Interaction, channel: discord.TextChannel):
