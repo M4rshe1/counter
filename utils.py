@@ -51,14 +51,6 @@ def setup_database():
                   image_url TEXT,
                   PRIMARY KEY (channel_id, alias))''')
 
-
-    c.execute('''CREATE TABLE IF NOT EXISTS allowed_users
-                    (user_id INTEGER,
-                    server_id INTEGER,
-                    PRIMARY KEY (user_id, server_id))''')
-
-
-
     c.execute('''CREATE TABLE IF NOT EXISTS channels
                  (server_id INTEGER,
                   channel_id INTEGER,
