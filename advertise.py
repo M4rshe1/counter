@@ -129,6 +129,7 @@ async def advertise_now(ctx: discord.Interaction, alias):
     conn.close()
     if result:
         await run_advertisement(result[0], ctx.client)
+        await ctx.response.send_message(f'Advertisement has been sent into <#{result[0]}>!', ephemeral=True)
     else:
         await ctx.response.send_message('This alias is not set up for advertisement!', ephemeral=True)
 
