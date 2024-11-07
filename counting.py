@@ -20,7 +20,7 @@ async def counting_unlink_channel(ctx: discord.Interaction):
     c.execute('DELETE FROM counting_channels WHERE channel_id = ?', (ctx.channel.id,))
     conn.commit()
     conn.close()
-    await ctx.response.send_message('This channel has been unlinked from counting!')
+    await ctx.response.send_message('This channel has been unlinked from counting!', ephemeral=True)
 
 async def counting_show_settings(ctx: discord.Interaction):
     current_count, _, reset_mode = get_channel_info(ctx.channel.id)
@@ -31,12 +31,12 @@ async def counting_show_settings(ctx: discord.Interaction):
         embed.add_field(name="Reset on Wrong", value=mode_str, inline=True)
         await ctx.response.send_message(embed=embed)
     else:
-        await ctx.response.send_message('This channel is not set up for counting!')
+        await ctx.response.send_message('This channel is not set up for counting!', ephemeral=True)
 
 
 async def counting_link_channel(ctx: discord.Interaction):
     update_channel_count(ctx.channel.id, 0, 0)
-    await ctx.response.send_message(f'This channel has been set up for counting! Start with 1')
+    await ctx.response.send_message(f'This channel has been set up for counting! Start with 1', ephemeral=True)
 
 async def counting_help_command(ctx: discord.Interaction):
     embed = discord.Embed(
@@ -81,7 +81,7 @@ async def counting_help_command(ctx: discord.Interaction):
     )
 
     embed.set_footer(text="For additional help, contact your server administrators.")
-    await ctx.response.send_message(embed=embed)
+    await ctx.response.send_message(embed=embed, ephemeral=True)
 
 
 # Helper function to update reset setting
@@ -135,11 +135,11 @@ async def counting_set_count(ctx: discord.Interaction, number: int):
         update_channel_count(ctx.channel.id, number, 0)
         if number == 0:
             reset_leaderboard(ctx.channel.id)
-            await ctx.response.send_message(f'Count has been set to {number} and leaderboard has been cleared!')
+            await ctx.response.send_message(f'Count has been set to {number} and leaderboard has been cleared!', ephemeral=True)
         else:
-            await ctx.response.send_message(f'Count has been set to {number}!')
+            await ctx.response.send_message(f'Count has been set to {number}!', ephemeral=True)
     else:
-        await ctx.response.send_message('This channel is not set up for counting!')
+        await ctx.response.send_message('This channel is not set up for counting!', ephemeral=True)
 
 
 async def show_leaderboard(ctx, bot):
@@ -154,13 +154,13 @@ async def show_leaderboard(ctx, bot):
         pass
     current_count, _, _ = get_channel_info(ctx.channel.id)
     if current_count is None:
-        await ctx.send('This channel is not set up for counting!')
+        await ctx.send('This channel is not set up for counting!', ephemeral=True)
         return
 
     leaderboard = get_leaderboard(ctx.channel.id, min(limit, 25))
 
     if not leaderboard:
-        await ctx.send('No entries in the leaderboard yet!')
+        await ctx.send('No entries in the leaderboard yet!', ephemeral=True)
         return
 
     embed = discord.Embed(
@@ -187,7 +187,7 @@ async def show_leaderboard(ctx, bot):
 
     await ctx.send(embed=embed)
 
-async def set_reset_mode(ctx):
+async def set_reset_mode(ctx: discord.Interaction):
     mode = ctx.message.content.split(' ')[2].lower()
     if mode == 'true':
         mode = True
@@ -197,9 +197,9 @@ async def set_reset_mode(ctx):
     if current_count is not None:
         update_reset_setting(ctx.channel.id, mode)
         mode_str = "will" if mode else "will not"
-        await ctx.send(f'Settings updated! Count {mode_str} reset on wrong numbers.')
+        await ctx.response.send_message(f'Settings updated! Count {mode_str} reset on wrong numbers.', ephemeral=True)
     else:
-        await ctx.send('This channel is not set up for counting!')
+        await ctx.response.send_message('This channel is not set up for counting!', ephemeral=True)
 
 async def counting_chat_evaluation(message):
     current_count, last_user_id, reset_on_wrong = get_channel_info(message.channel.id)

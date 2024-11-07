@@ -1,8 +1,5 @@
-import asyncio
 import sqlite3
-from datetime import datetime
 import discord
-import croniter
 
 from advertise_settings_modal import AdvertisementSettingsModal
 from crontabs import delete_cron_job, cron_job, run_advertisement
@@ -50,12 +47,12 @@ async def show_advertise_settings(ctx: discord.Interaction):
             embed.add_field(name="Alias", value=alias, inline=True)
             await ctx.response.send_message(embed=embed)
     if len(results) == 0:
-        await ctx.response.send_message('This server has no advertisement channels set up!')
+        await ctx.response.send_message('This server has no advertisement channels set up!', ephemeral=True)
 
 
 async def link_advertise_channel(ctx: discord.Interaction, channel, alias):
     if not channel.is_news():
-        await ctx.response.send_message('This channel is not an announcement channel!')
+        await ctx.response.send_message('This channel is not an announcement channel!', ephemeral=True)
         return
 
     conn = sqlite3.connect('quantic.db')
@@ -63,7 +60,7 @@ async def link_advertise_channel(ctx: discord.Interaction, channel, alias):
     # Check if the alias is already in use for this server
     c.execute('SELECT * FROM advetisement WHERE server_id = ? AND alias = ?', (ctx.guild.id, alias))
     if c.fetchone():
-        await ctx.response.send_message('This alias is already in use for this server!')
+        await ctx.response.send_message('This alias is already in use for this server!', ephemeral=True)
         return
 
     c.execute('INSERT INTO advetisement (channel_id, server_id, alias) VALUES (?, ?, ?)',
@@ -90,7 +87,7 @@ async def unlink_advertise_channel(ctx: discord.Interaction, alias):
 
     delete_cron_job(f"{alias}_{ctx.guild.id}")
 
-    await ctx.response.send_message('This channel has been unlinked from advertisement!')
+    await ctx.response.send_message('This channel has been unlinked from advertisement!', ephemeral=True)
 
 
 async def set_advertise_message(ctx: discord.Interaction):
@@ -101,7 +98,7 @@ async def set_advertise_message(ctx: discord.Interaction):
     c.execute('UPDATE advetisement SET message = ? WHERE server_id = ? AND alias = ?', (message, ctx.guild.id, alias))
     conn.commit()
     conn.close()
-    await ctx.response.send_message('Advertisement message has been set!')
+    await ctx.response.send_message('Advertisement message has been set!', ephemeral=True)
 
 
 async def advertise(ctx: discord.Interaction, alias):
@@ -113,7 +110,7 @@ async def advertise(ctx: discord.Interaction, alias):
     conn.close()
     if result:
         if not result[0]:
-            await ctx.response.send_message('No message set for this alias!')
+            await ctx.response.send_message('No message set for this alias!', ephemeral=True)
             return
         title = result[0].split('\n')[0]
         body = result[0].split('\n', 1)[1]
@@ -121,7 +118,7 @@ async def advertise(ctx: discord.Interaction, alias):
         embed.set_image(url=result[1])
         await ctx.response.send_message(embed=embed)
     else:
-        await ctx.response.send_message('This alias is not set up for advertisement!')
+        await ctx.response.send_message('This alias is not set up for advertisement!', ephemeral=True)
 
 
 async def advertise_now(ctx: discord.Interaction, alias):
@@ -133,7 +130,7 @@ async def advertise_now(ctx: discord.Interaction, alias):
     if result:
         await run_advertisement(result[0], ctx.client)
     else:
-        await ctx.response.send_message('This alias is not set up for advertisement!')
+        await ctx.response.send_message('This alias is not set up for advertisement!', ephemeral=True)
 
 
 async def add_image_to_advertisement(ctx: discord.Interaction, alias, image_url):
@@ -143,7 +140,7 @@ async def add_image_to_advertisement(ctx: discord.Interaction, alias, image_url)
               (image_url, ctx.guild.id, alias))
     conn.commit()
     conn.close()
-    await ctx.response.send_message('Image has been added to advertisement!')
+    await ctx.response.send_message('Image has been added to advertisement!', ephemeral=True)
 
 
 async def advertisement_settings(ctx: discord.Interaction, alias):
@@ -154,7 +151,7 @@ async def advertisement_settings(ctx: discord.Interaction, alias):
     result = c.fetchone()
     conn.close()
     if not result:
-        await ctx.response.send_message('This alias is not set up for advertisement!')
+        await ctx.response.send_message('This alias is not set up for advertisement!', ephemeral=True)
         return
     modal = AdvertisementSettingsModal(alias, result[0], result[1], result[2])
     await ctx.response.send_modal(modal)

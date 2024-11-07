@@ -15,7 +15,7 @@ async def error_set(ctx: discord.Interaction, channel):
         c.execute('INSERT INTO channels (server_id, channel_id, type) VALUES (?, ?, ?)', (ctx.guild.id, channel_id, 'ERROR'))
     conn.commit()
     conn.close()
-    await ctx.response.send_message(f'Error channel has been set to <#{channel_id}>!')
+    await ctx.response.send_message(f'Error channel has been set to <#{channel_id}>!', ephemeral=True)
 
 
 async def error_remove(ctx: discord.Interaction):
@@ -25,9 +25,9 @@ async def error_remove(ctx: discord.Interaction):
     conn.commit()
     conn.close()
     if result.rowcount == 0:
-        await ctx.response.send_message('Error channel has not been set!')
+        await ctx.response.send_message('Error channel has not been set!', ephemeral=True)
         return
-    await ctx.response.send_message(f"The channel <#{result[0]}> has been removed from being an error channel!")
+    await ctx.response.send_message(f"The channel <#{result[0]}> has been removed from being an error channel!", ephemeral=True)
 
 
 async def error_list(ctx: discord.Interaction):
@@ -40,7 +40,7 @@ async def error_list(ctx: discord.Interaction):
         await ctx.response.send_message('No channels have been set!')
         return
     channels = [f'<#{result[0]}>' for result in results]
-    await ctx.response.send_message('Channels in the database:\n' + '\n'.join(channels))
+    await ctx.response.send_message('Channels in the database:\n' + '\n'.join(channels), ephemeral=True)
 
 
 async def users_add(ctx: discord.Interaction, user):
@@ -50,7 +50,7 @@ async def users_add(ctx: discord.Interaction, user):
     c.execute('INSERT INTO allowed_users (user_id, server_id) VALUES (?, ?)', (user_id, ctx.guild.id))
     conn.commit()
     conn.close()
-    await ctx.response.send_message(f'{user.name} has been added to the database!')
+    await ctx.response.send_message(f'{user.name} has been added to the database!', ephemeral=True)
 
 async def users_remove(ctx: discord.Interaction, user):
     user_id = user.id
@@ -60,9 +60,9 @@ async def users_remove(ctx: discord.Interaction, user):
     conn.commit()
     conn.close()
     if count == 0:
-        await ctx.response.send_message(f'{user.name} is not in the database!')
+        await ctx.response.send_message(f'{user.name} is not in the database!', ephemeral=True)
         return
-    await ctx.response.send_message(f'{user.name} has been removed from the database!')
+    await ctx.response.send_message(f'{user.name} has been removed from the database!', ephemeral=True)
 
 async def users_list(ctx: discord.Interaction):
     conn = sqlite3.connect('quantic.db')
@@ -71,10 +71,10 @@ async def users_list(ctx: discord.Interaction):
     results = c.fetchall()
     conn.close()
     if not results:
-        await ctx.response.send_message('No users have been added to the database!')
+        await ctx.response.send_message('No users have been added to the database!', ephemeral=True)
         return
     users = [f'<@{result[0]}>' for result in results]
-    await ctx.response.send_message('Users in the database:\n' + '\n'.join(users))
+    await ctx.response.send_message('Users in the database:\n' + '\n'.join(users), ephemeral=True)
 
 
 async def ban_set(ctx: discord.Interaction, channel):
@@ -88,7 +88,7 @@ async def ban_set(ctx: discord.Interaction, channel):
         c.execute('INSERT INTO channels (server_id, channel_id, type) VALUES (?, ?, ?)', (ctx.guild.id, channel_id, 'REPORT'))
     conn.commit()
     conn.close()
-    await ctx.response.send_message(f'Report channel has been set to <#{channel_id}>!')
+    await ctx.response.send_message(f'Report channel has been set to <#{channel_id}>!', ephemeral=True)
 
 async def ban_remove(ctx: discord.Interaction):
     conn = sqlite3.connect('quantic.db')
@@ -97,9 +97,9 @@ async def ban_remove(ctx: discord.Interaction):
     conn.commit()
     conn.close()
     if result.rowcount == 0:
-        await ctx.response.send_message('Report channel has not been set!')
+        await ctx.response.send_message('Report channel has not been set!', ephemeral=True)
         return
-    await ctx.response.send_message(f"The channel <#{result[0]}> has been removed from being a report channel!")
+    await ctx.response.send_message(f"The channel <#{result[0]}> has been removed from being a report channel!", ephemeral=True)
 
 async def ban_list(ctx: discord.Interaction):
     conn = sqlite3.connect('quantic.db')
@@ -108,7 +108,7 @@ async def ban_list(ctx: discord.Interaction):
     results = c.fetchall()
     conn.close()
     if not results:
-        await ctx.response.send_message('No channels have been set!')
+        await ctx.response.send_message('No channels have been set!', ephemeral=True)
         return
     channels = [f'<#{result[0]}>' for result in results]
     await ctx.response.send_message('Channels in the database:\n' + '\n'.join(channels))
@@ -120,27 +120,27 @@ async def ban_user(ctx: discord.Interaction, user, reason):
     c.execute('SELECT channel_id FROM channels WHERE server_id = ? AND type = ?', (ctx.guild.id, 'REPORT'))
     result = c.fetchone()
     if not result:
-        await ctx.response.send_message('No report channel has been set!')
+        await ctx.response.send_message('No report channel has been set!', ephemeral=True)
         return
     report_channel = ctx.guild.get_channel(result[0])
     if not report_channel:
-        await ctx.response.send_message('Report channel is not found!, Maybe it has been deleted!')
+        await ctx.response.send_message('Report channel is not found!, Maybe it has been deleted!', ephemeral=True)
         return
     member = ctx.guild.get_member(user.id)
     if not member:
-        await ctx.response.send_message('User is not in the server!')
+        await ctx.response.send_message('User is not in the server!', ephemeral=True)
         return
     duration = timedelta(weeks=2)
 
     # check if user has same or higher role
     if ctx.user.top_role <= member.top_role:
-        await ctx.response.send_message('You cannot ban a user with the same or higher role!')
+        await ctx.response.send_message('You cannot ban a user with the same or higher role!', ephemeral=True)
         return
 
     try:
         await member.timeout(duration, reason=reason)
     except discord.Forbidden:
-        await ctx.response.send_message('I do not have permission to timeout this user!')
+        await ctx.response.send_message('I do not have permission to timeout this user!', ephemeral=True)
         return
     view = BanButtons()
     user_block = f'''
