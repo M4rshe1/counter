@@ -26,7 +26,6 @@ def send_error_message(ctx, message: str):
     error_channel.send(error_message)
 
 
-
 def setup_database():
     conn = sqlite3.connect('quantic.db')
     c = conn.cursor()

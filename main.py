@@ -1,6 +1,5 @@
 import os
 import sqlite3
-
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -9,6 +8,7 @@ from advertise import advertise_commands, setup_crontabs
 from counting import counting_commands, counting_chat_evaluation, show_leaderboard
 from utils import setup_database
 from quantic import quantic_commands
+from BanButtons import BanButtons
 
 intents = discord.Intents.all()
 
@@ -22,7 +22,9 @@ class MyBot(commands.Bot):
         # await self.tree.sync(guild=discord.Object(id=GUILD_ID))
         setup_database()
         setup_crontabs(self)
+        bot.add_view(BanButtons())
         print('Setup complete!')
+
 
 bot = MyBot()
 
@@ -43,15 +45,12 @@ def is_allowed():
             return True
         else:
             return ctx.author.guild_permissions.manage_channels
-
-
-
     return commands.check(predicate)
+
 
 def channel_is_in_guild(channel_id):
     async def predicate(ctx):
         return ctx.guild.get_channel(channel_id) is not None
-
     return commands.check(predicate)
 
 
@@ -150,6 +149,7 @@ async def leaderboard(ctx):
     await show_leaderboard(ctx, bot)
 
 
+
 @bot.event
 async def on_message(message):
     await bot.process_commands(message)
@@ -161,6 +161,8 @@ async def on_message(message):
         return
 
     await counting_chat_evaluation(message)
+
+
 
 
 

@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 
 import discord
 
+from BanButtons import BanButtons
+
 
 async def error_commands(ctx):
     command = ctx.message.content.split(' ')[2]
@@ -51,13 +53,13 @@ async def users_commands(ctx):
             return
         await ctx.send(f'{ctx.message.mentions[0].name} has been removed from the database!')
         return
-    if command == 'add':
+    elif command == 'add':
         user_id = ctx.message.mentions[0].id
         c.execute('INSERT INTO allowed_users (user_id, server_id) VALUES (?, ?)', (user_id, ctx.guild.id))
         conn.commit()
         conn.close()
         await ctx.send(f'{ctx.message.mentions[0].name} has been added to the database!')
-    if command == 'list':
+    elif command == 'list':
         c.execute('SELECT user_id FROM allowed_users WHERE server_id = ?', (ctx.guild.id,))
         results = c.fetchall()
         conn.close()
@@ -66,50 +68,6 @@ async def users_commands(ctx):
             return
         users = [f'<@{result[0]}>' for result in results]
         await ctx.send('Users in the database:\n' + '\n'.join(users))
-
-
-async def update_embed(interaction, status, color):
-    embed = interaction.message.embeds[0]
-    embed.set_field_at(4, name='Status', value=status, inline=False)
-    embed.add_field(name='processed by', value=f"<@{interaction.user.id}> at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", inline=False)
-    embed.color = color
-    await interaction.message.edit(embed=embed)
-    await interaction.message.edit(view=None)
-
-
-class BanButton(discord.ui.View):
-    def __init__(self, member, reason=None):
-        super().__init__()
-        self.member = member
-        self.reason = reason
-
-    @discord.ui.button(label="Ban", style=discord.ButtonStyle.danger)
-    async def ban_button(self, interaction, button):
-        try:
-            await self.member.ban(reason=self.reason)
-        except discord.Forbidden:
-            await interaction.response.send_message('I do not have permission to ban this user!', ephemeral=True)
-            return
-        await update_embed(interaction, 'Banned', discord.Color.red())
-        self.stop()
-
-    @discord.ui.button(label="Remove Timeout", style=discord.ButtonStyle.green)
-    async def remove_timeout_button(self, interaction, button):
-        try:
-            await self.member.timeout(None)
-        except discord.Forbidden:
-            await interaction.response.send_message('I do not have permission to remove the timeout!', ephemeral=True)
-            return
-        await update_embed(interaction, 'Timeout Removed', discord.Color.green())
-
-        self.stop()
-
-    @discord.ui.button(label="Ignore", style=discord.ButtonStyle.grey)
-    async def ignore_button(self, interaction, button):
-        await update_embed(interaction, 'Ignored', discord.Color.greyple())
-        self.stop()
-
-
 
 
 async def ban_commands(ctx):
@@ -126,7 +84,7 @@ async def ban_commands(ctx):
             await ctx.send('You cannot ban this user!')
             return
         reason = ctx.message.content.split(' ', 3)[3] if len(ctx.message.content.split(' ')) > 3 else None
-        if reason is not None:
+        if reason is None:
             await ctx.send('Please provide a reason!')
             return
 
@@ -149,7 +107,7 @@ async def ban_commands(ctx):
         except discord.Forbidden:
             await ctx.send('I do not have permission to ban this user!')
             return
-        view = BanButton(member, reason)
+        view = BanButtons()
         user_block = f'''
         > User: `@{user.name}` (<@{user.id}>)
         > ID: `{user.id}`
@@ -159,7 +117,7 @@ async def ban_commands(ctx):
         reason_block = f'''
         > {reason}
         '''
-        embed = discord.Embed(title='User Ban Report', color=discord.Color.red())
+        embed = discord.Embed(title='User Ban Report', color=discord.Color.yellow())
         embed.add_field(name='User', value=user_block, inline=False)
         embed.add_field(name='Reason(s)', value=reason_block, inline=False)
         embed.add_field(name='Reported by', value=f"<@{ctx.author.id}>", inline=False)
@@ -182,7 +140,7 @@ async def ban_commands(ctx):
         conn.close()
         await ctx.send(f'Report channel has been set to <#{channel_id}>!')
 
-    if command == 'remove':
+    elif command == 'remove':
         c.execute('SELECT channel_id FROM channels WHERE server_id = ? AND type = ?', (ctx.guild.id, 'REPORT'))
         result = c.fetchone()
         if result:
@@ -193,7 +151,7 @@ async def ban_commands(ctx):
         else:
             await ctx.send('Report channel has not been set!')
 
-    if command == 'list':
+    elif command == 'list':
         c.execute('SELECT channel_id FROM channels WHERE server_id = ? AND type = ?', (ctx.guild.id, 'REPORT'))
         results = c.fetchall()
         conn.close()
