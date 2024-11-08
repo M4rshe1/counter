@@ -139,6 +139,11 @@ class SlashCommands(commands.Cog):
     async def h(self, interaction: discord.Interaction):
         await quantic_help_command(interaction)
 
+    @app_commands.command(name="move", description="Move a user to a voice channel")
+    async def move(self, interaction: discord.Interaction, user: discord.Member, channel: discord.VoiceChannel):
+        await user.move_to(channel)
+        await interaction.response.send_message(f"Moved {user.mention} to {channel.mention}", ephemeral=True)
+
     async def setup_group_commands(self):
         self.bot.tree.add_command(self.ReportGroup())
         self.bot.tree.add_command(self.CountingGroup())
