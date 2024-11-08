@@ -1,5 +1,4 @@
 import sqlite3
-from idlelib.undo import Command
 
 import discord
 from utils import get_channel_info
