@@ -177,10 +177,10 @@ async def quantic_help_command(ctx):
     )
 
     quantic_report_system = """
-    `/quantic ban @user` - Make a ban report
-    `/quantic report set #channel` - Set ban report channel
-    `/quantic report remove` - Remove ban report channel
-    `/quantic report list` - List ban report channels
+    `/report user @user` - Make a ban report
+    `/report set #channel` - Set ban report channel
+    `/report remove` - Remove ban report channel
+    `/report list` - List ban report channels
     """
 
     embed.add_field(
