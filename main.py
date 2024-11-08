@@ -131,18 +131,6 @@ class SlashCommands(commands.Cog):
         async def advertisement_get(self, interaction: discord.Interaction, alias: str):
             await advertise(interaction, alias)
 
-    @app_commands.command(name="lb", description="Show the leaderboard of the current channel")
-    async def lb(self, interaction: discord.Interaction, count: Optional[int] = 10):
-        await show_leaderboard(interaction, count)
-
-    @app_commands.command(name="help", description="Show Quantic bot help")
-    async def h(self, interaction: discord.Interaction):
-        await quantic_help_command(interaction)
-
-    @app_commands.command(name="move", description="Move a user to a voice channel")
-    async def move(self, interaction: discord.Interaction, user: discord.Member, channel: discord.VoiceChannel):
-        await user.move_to(channel)
-        await interaction.response.send_message(f"Moved {user.mention} to {channel.mention}", ephemeral=True)
 
     async def setup_group_commands(self):
         self.bot.tree.add_command(self.ReportGroup())
