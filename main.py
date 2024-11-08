@@ -1,15 +1,14 @@
 import os
 import sqlite3
 from typing import Optional
-
 import discord
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from advertise import  advertise_help_command, link_advertise_channel, \
+from advertise import link_advertise_channel, \
     unlink_advertise_channel, show_advertise_settings, advertise, advertise_now, advertisement_settings
-from counting import counting_chat_evaluation, show_leaderboard, counting_help_command, \
+from counting import counting_chat_evaluation, show_leaderboard, \
     counting_link_channel, update_reset_setting, counting_set_count, counting_show_settings, counting_unlink_channel
 from crontabs import setup_crontabs
 from utils import setup_database
@@ -26,68 +25,62 @@ def is_allowed():
     async def predicate(ctx):
         conn = sqlite3.connect('quantic.db')
         c = conn.cursor()
-        c.execute('SELECT user_id FROM allowed_users WHERE user_id = ? AND server_id = ?', (ctx.author.id, ctx.guild.id))
+        c.execute('SELECT user_id FROM allowed_users WHERE user_id = ? AND server_id = ?',
+                  (ctx.author.id, ctx.guild.id))
         result = c.fetchone()
         conn.close()
         if result:
             return True
         else:
             return ctx.author.guild_permissions.manage_channels
+
     return commands.check(predicate)
 
 
 def channel_is_in_guild(channel_id):
     async def predicate(ctx):
         return ctx.guild.get_channel(channel_id) is not None
+
     return commands.check(predicate)
+
 
 class SlashCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.bot.loop.create_task(self.setup_group_commands())
 
-    class QuanticGroup(app_commands.Group, name="quantic", description="Quantic bot administration"):
-        class ErrorGroup(app_commands.Group, name="error"):
-            @app_commands.command(name="set", description="Set error channel")
-            async def set(self, interaction: discord.Interaction, channel: discord.TextChannel):
-                await error_set(interaction, channel)
+    class ErrorGroup(app_commands.Group, name="error"):
+        @app_commands.command(name="set", description="Set error channel")
+        async def set(self, interaction: discord.Interaction, channel: discord.TextChannel):
+            await error_set(interaction, channel)
 
-            @app_commands.command(name="remove", description="Remove error channel")
-            async def remove(self, interaction: discord.Interaction):
-                await error_remove(interaction)
+        @app_commands.command(name="remove", description="Remove error channel")
+        async def remove(self, interaction: discord.Interaction):
+            await error_remove(interaction)
 
-            @app_commands.command(name="list", description="List error channels")
-            async def list(self, interaction: discord.Interaction):
-                await error_list(interaction)
+        @app_commands.command(name="list", description="List error channels")
+        async def list(self, interaction: discord.Interaction):
+            await error_list(interaction)
 
-        class ReportGroup(app_commands.Group, name="report"):
-            @app_commands.command(name="set", description="Set ban report channel")
-            async def set(self, interaction: discord.Interaction, channel: discord.TextChannel):
-                await ban_set(interaction, channel)
 
-            @app_commands.command(name="remove", description="Remove ban report channel")
-            async def remove(self, interaction: discord.Interaction):
-                await ban_remove(interaction)
+    class ReportGroup(app_commands.Group, name="report"):
+        @app_commands.command(name="set", description="Set ban report channel")
+        async def set(self, interaction: discord.Interaction, channel: discord.TextChannel):
+            await ban_set(interaction, channel)
 
-            @app_commands.command(name="list", description="List ban report channels")
-            async def list(self, interaction: discord.Interaction):
-                await ban_list(interaction)
+        @app_commands.command(name="remove", description="Remove ban report channel")
+        async def remove(self, interaction: discord.Interaction):
+            await ban_remove(interaction)
 
-        @app_commands.command(name="ban", description="Make a ban report")
+        @app_commands.command(name="list", description="List ban report channels")
+        async def list(self, interaction: discord.Interaction):
+            await ban_list(interaction)
+
+        @app_commands.command(name="user", description="Make a ban report")
         async def report(self, interaction: discord.Interaction, user: discord.User, reason: str):
             await ban_user(interaction, user, reason)
 
-
-        def __init__(self):
-            super().__init__()
-            self.add_command(self.ReportGroup())
-            self.add_command(self.ErrorGroup())
-
     class CountingGroup(app_commands.Group, name="counting", description="Counting bot commands"):
-        @app_commands.command(name="help", description="Show counting bot help")
-        async def help(self, interaction: discord.Interaction):
-            await counting_help_command(interaction)
-
         @app_commands.command(name="leaderboard", description="Show top counters")
         async def leaderboard(self, interaction: discord.Interaction, count: Optional[int] = 10):
             await show_leaderboard(interaction, count)
@@ -113,15 +106,11 @@ class SlashCommands(commands.Cog):
             await counting_unlink_channel(interaction)
 
     class AdvertiseGroup(app_commands.Group, name="advertise", description="Advertise bot commands"):
-        @app_commands.command(name="help", description="Show advertisement bot help")
-        async def advertisement_help(self, interaction: discord.Interaction):
-            await advertise_help_command(interaction)
-
-        @app_commands.command(name="link", description="Set up current channel for advertisement")
+        @app_commands.command(name="link", description="Set up a channel for advertisement")
         async def advertisement_link(self, interaction: discord.Interaction, channel: discord.TextChannel, alias: str):
             await link_advertise_channel(interaction, channel, alias)
 
-        @app_commands.command(name="unlink", description="Unlink channel from advertisement")
+        @app_commands.command(name="unlink", description="Unlink a channel from advertisement")
         async def advertisement_unlink(self, interaction: discord.Interaction, alias: str):
             await unlink_advertise_channel(interaction, alias)
 
@@ -142,20 +131,30 @@ class SlashCommands(commands.Cog):
         async def advertisement_get(self, interaction: discord.Interaction, alias: str):
             await advertise(interaction, alias)
 
-    async def setup_group_commands(self):
-        self.bot.tree.add_command(self.QuanticGroup())
-        self.bot.tree.add_command(self.CountingGroup())
-        self.bot.tree.add_command(self.AdvertiseGroup())
-        await self.bot.tree.sync()
+    @app_commands.command(name="lb", description="Show the leaderboard of the current channel")
+    async def lb(self, interaction: discord.Interaction, count: Optional[int] = 10):
+        await show_leaderboard(interaction, count)
 
-    @commands.command()
+    @app_commands.command(name="help", description="Show Quantic bot help")
     async def h(self, interaction: discord.Interaction):
         await quantic_help_command(interaction)
+
+    async def setup_group_commands(self):
+        self.bot.tree.add_command(self.ReportGroup())
+        self.bot.tree.add_command(self.CountingGroup())
+        self.bot.tree.add_command(self.AdvertiseGroup())
+        self.bot.tree.add_command(self.ErrorGroup())
+
+        await self.bot.tree.sync()
 
     @commands.command()
     async def sync(self, ctx: commands.Context):
         await self.bot.tree.sync(guild=discord.Object(id=ctx.guild.id))
         await ctx.send("Commands synced!")
+
+    @commands.command()
+    async def h(self, ctx: commands.Context):
+        await quantic_help_command(ctx)
 
     @commands.command()
     async def lb(self, ctx: commands.Context, count: Optional[int] = 10):
@@ -170,6 +169,7 @@ async def on_ready():
     setup_crontabs(client)
     client.add_view(BanButtons())
     await client.add_cog(SlashCommands(client))
+    await client.change_presence(activity=discord.Game(name="Quantic-Pixel.net | !h"))
 
 
 @client.event
@@ -183,9 +183,6 @@ async def on_message(message):
         return
 
     await counting_chat_evaluation(message)
-
-
-
 
 
 client.run(TOKEN)

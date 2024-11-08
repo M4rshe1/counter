@@ -129,47 +129,45 @@ async def ban_user(ctx: discord.Interaction, user, reason):
     await ctx.response.send_message(f'User has been banned and reported! See <#{report_channel.id}> for more details!', ephemeral=True)
 
 
-async def quantic_help_command(ctx: discord.Interaction):
+async def quantic_help_command(ctx):
     embed = discord.Embed(
         title="📋 Quantic Bot Help",
-        description="A bot for managing counting and advertisement channels with various features.",
+        description="Here are the commands you can use with Quantic Bot",
         color=discord.Color.blue()
     )
 
     counting_help = """
-    `/counting help` - Show counting bot help
+    `/counting link` - Set up current channel for counting
+    `/counting set <number>` - Set count to specific number
+    `/counting mode <True/False>` - Toggle count reset on wrong numbers
+    `/counting settings` - Show current channel settings
+    `!lb <?count>` - Show the leaderboard of the current channel
     """
+
     embed.add_field(
-        name="🔢 Counting Bot",
+        name="🔢 Counting System",
         value=counting_help,
         inline=False
     )
 
     advertise_help = """
-    `/advertise help` - Show advertisement bot help
+    `/advertise link #channel <alias>` - Set up current channel for advertisement
+    `/advertise unlink <alias>` - Unlink channel from advertisement
+    `/advertise settings <alias>` - Set advertisement message
+    `/advertise list` - Show current server advertisement settings
+    `/advertise send <alias>` - Send advertisement now
+    `/advertise get <alias>` - Show advertisement message for alias
     """
     embed.add_field(
-        name="📢 Advertisement Bot",
+        name="📢 Advertisement System",
         value=advertise_help,
         inline=False
     )
 
-    quantic_user_management = """
-    `/quantic user add @user` - Add user to allowed users
-    `/quantic user remove @user` - Remove user from allowed users
-    `/quantic user list` - List allowed users
-    """
-
-    embed.add_field(
-        name="👤 Quantic User Management",
-        value=quantic_user_management,
-        inline=False
-    )
-
     quantic_error = """
-    `/quantic error set #channel` - Set error channel
-    `/quantic error remove` - Remove error channel
-    `/quantic error list` - List error channel
+    `/error set #channel` - Set error channel
+    `/error remove` - Remove error channel
+    `/error list` - List error channel
     """
 
     embed.add_field(
@@ -191,5 +189,5 @@ async def quantic_help_command(ctx: discord.Interaction):
         inline=False
     )
 
-    await ctx.response.send_message(embed=embed)
+    await ctx.send(embed=embed)
 

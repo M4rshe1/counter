@@ -35,7 +35,7 @@ class AdvertisementSettingsModal(ui.Modal, title="Set Advertisement Details"):
             conn.close()
             delete_cron_job(f"{self.alias}_{interaction.guild.id}")
             if interval:
-                cron_job(f"{self.alias}_{interaction.guild.id}", interaction.channel.id, interval, interaction)
+                cron_job(f"{self.alias}_{interaction.guild.id}", interaction, interval, self.alias)
             await interaction.response.send_message("Advertisement details updated successfully!", ephemeral=True)
             await interaction.response.defer()
         except Exception as e:

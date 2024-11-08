@@ -2,34 +2,7 @@ import sqlite3
 import discord
 
 from advertise_settings_modal import AdvertisementSettingsModal
-from crontabs import delete_cron_job, cron_job, run_advertisement
-
-
-async def advertise_help_command(ctx: discord.Interaction):
-    embed = discord.Embed(
-        title="📋 Advertise Bot Help",
-        description="A bot for managing advertisement channels with various features.",
-        color=discord.Color.blue()
-    )
-
-    admin_commands = """
-    `/advertise link #channel <alias>` - Set up current channel for advertisement
-    `/advertise unlink <alias>` - Unlink channel from advertisement
-    `/advertise settings <alias>` - Set advertisement message
-    `/advertise list` - Show current server advertisement settings
-    `/advertise send <alias>` - Send advertisement now
-    `/advertise get <alias>` - Show advertisement message for alias
-    """
-    embed.add_field(
-        name="👑 Admin Commands (Requires Manage Channels)",
-        value=admin_commands,
-        inline=False
-    )
-
-    embed.set_footer(text="For additional help, contact your server administrators.")
-    await ctx.response.send_message(embed=embed)
-
-
+from crontabs import delete_cron_job, run_advertisement
 
 
 async def show_advertise_settings(ctx: discord.Interaction):
@@ -42,9 +15,10 @@ async def show_advertise_settings(ctx: discord.Interaction):
     if results:
         for message, interval, alias, channel_id in results:
             embed = discord.Embed(title=f"Channel Settings: {channel_name}", color=discord.Color.blue())
-            embed.add_field(name="Advertisement Message", value=("Set" if message else "Not set"), inline=True)
-            embed.add_field(name="Advertisement Interval", value=f'`{interval}`', inline=True)
+            embed.add_field(name="Message", value=("Set" if message else "Not set"), inline=True)
+            embed.add_field(name="Interval", value=f'`{interval}`', inline=True)
             embed.add_field(name="Alias", value=alias, inline=True)
+            embed.add_field(name="Channel", value=f'<#{channel_id}>', inline=True)
             await ctx.response.send_message(embed=embed)
     if len(results) == 0:
         await ctx.response.send_message('This server has no advertisement channels set up!', ephemeral=True)

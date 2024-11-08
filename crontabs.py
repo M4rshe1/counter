@@ -8,11 +8,11 @@ from utils import send_error_message
 crontabs = {}
 
 
-def cron_job(job_id: str, channel_id: int, expression: str, ctx: discord.Interaction):
+def cron_job(job_id: str, ctx: discord.Interaction, expression: str, alias: str):
     job = crontabs.get(job_id)
     if job:
         job.stop()
-    crontabs[job_id] = aiocron.crontab(expression, func=run_advertisement, start=True, args=(channel_id, ctx.client))
+    crontabs[job_id] = aiocron.crontab(expression, func=run_advertisement, start=True, args=(alias, ctx.guild.id, ctx.client))
 
 
 def delete_cron_job(job_id: str):
@@ -20,6 +20,7 @@ def delete_cron_job(job_id: str):
     if job:
         job.stop()
         del crontabs[job_id]
+
 
 def setup_crontabs(client: discord.Client):
     conn = sqlite3.connect('quantic.db')
@@ -31,17 +32,17 @@ def setup_crontabs(client: discord.Client):
     for channel_id, interval, alias, server_id in results:
         if interval:
             crontabs[f"{alias}_{server_id}"] = aiocron.crontab(interval, func=run_advertisement, start=True,
-                                                               args=(channel_id, client))
+                                                               args=(alias, server_id, client))
 
 
-async def run_advertisement(channel_id: int, client: discord.Client):
+async def run_advertisement(alias: str, server_id, client: discord.Client):
     conn = sqlite3.connect('quantic.db')
     c = conn.cursor()
-    c.execute('SELECT message, image_url FROM advetisement WHERE channel_id = ?', (channel_id,))
+    c.execute('SELECT message, image_url, channel_id FROM advetisement WHERE server_id = ? AND alias = ?', (server_id, alias))
     result = c.fetchone()
     conn.close()
     if result:
-        channel = client.get_channel(channel_id)
+        channel = client.get_channel(result[2])
         try:
             title = result[0].split('\n')[0]
             body = result[0].split('\n', 1)[1]
@@ -52,8 +53,8 @@ async def run_advertisement(channel_id: int, client: discord.Client):
             await asyncio.sleep(5)
             await message.publish()
         except discord.Forbidden:
-            send_error_message(channel_id, "I don't have permission to send messages in this channel!")
+            send_error_message(ctx, "I don't have permission to send messages in this channel!")
         except discord.HTTPException:
-            send_error_message(channel_id, "An error occurred while sending the message!")
+            send_error_message(ctx, "An error occurred while sending the message!")
     else:
-        send_error_message(channel_id, "No message set for this alias!")
+        send_error_message(ctx, "No message set for this alias!")

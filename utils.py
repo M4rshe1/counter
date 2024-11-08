@@ -1,6 +1,9 @@
 import sqlite3
 from typing import Optional
 
+import discord
+
+
 def get_channel_info(channel_id: int) -> tuple[Optional[int], Optional[int], Optional[bool]]:
     conn = sqlite3.connect('quantic.db')
     c = conn.cursor()
@@ -10,11 +13,11 @@ def get_channel_info(channel_id: int) -> tuple[Optional[int], Optional[int], Opt
     conn.close()
     return result if result else (None, None, None)
 
-def send_error_message(ctx, message: str):
+def send_error_message(ctx: discord.Interaction, message: str):
     print('Error:', message)
     conn = sqlite3.connect('quantic.db')
     c = conn.cursor()
-    c.execute('SELECT channel_id FROM channels WHERE server_id = ? AND type = "ERROR"', (ctx.guild.id,))
+    c.execute('SELECT channel_id FROM channels WHERE server_id = ? AND type = ?', (ctx.guild.id, 'ERROR'))
     result = c.fetchone()
     conn.close()
     if not result:
