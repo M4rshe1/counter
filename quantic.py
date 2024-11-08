@@ -177,7 +177,7 @@ async def quantic_help_command(ctx):
     )
 
     quantic_report_system = """
-    `/report user @user` - Make a ban report
+    `/report user @user <reason>` - Make a ban report
     `/report set #channel` - Set ban report channel
     `/report remove` - Remove ban report channel
     `/report list` - List ban report channels
