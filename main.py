@@ -131,10 +131,6 @@ class SlashCommands(commands.Cog):
         async def advertisement_get(self, interaction: discord.Interaction, alias: str):
             await advertise(interaction, alias)
 
-        @app_commands.command(name="test", description="Get advertisement message")
-        async def advertisement_get(self, interaction: discord.Interaction, alias: str):
-            await advertise(interaction, alias)
-
     @app_commands.command(name="lb", description="Show the leaderboard of the current channel")
     async def lb(self, interaction: discord.Interaction, count: Optional[int] = 10):
         await show_leaderboard(interaction, count)
