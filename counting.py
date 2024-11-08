@@ -1,4 +1,6 @@
 import sqlite3
+from idlelib.undo import Command
+
 import discord
 from utils import get_channel_info
 
@@ -98,6 +100,7 @@ async def counting_set_count(ctx: discord.Interaction, number: int):
 
 async def show_leaderboard(ctx, limit: int = 10):
     current_count, _, _ = get_channel_info(ctx.channel.id)
+    await ctx.message.delete()
     if current_count is None:
         await ctx.send('This channel is not set up for counting!', ephemeral=True)
         return
@@ -130,7 +133,7 @@ async def show_leaderboard(ctx, limit: int = 10):
             inline=False
         )
 
-    await ctx.send(embed=embed)
+    await ctx.send(embed=embed, ephemeral=True)
 
 async def set_reset_mode(ctx: discord.Interaction):
     mode = ctx.message.content.split(' ')[2].lower()
